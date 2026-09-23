@@ -49,10 +49,9 @@ To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch 
 **Export** in the session header downloads a JSON file with the raw request and response, including headers and bodies:
 
 - **Latest request + response:** the full conversation, as it was sent.
-- **Shown request + response:** the older request you're viewing, if you picked one.
 - **All N requests:** every request and response in the session.
 
-JSON bodies are included as parsed objects. Streamed (SSE) responses stay as the raw event-stream text. Auth headers are already redacted. The same exports are available from `GET /api/sessions/:id/export?scope=latest|all` and `GET /api/requests/:id/export`.
+JSON bodies are included as parsed objects. Streamed (SSE) responses stay as the raw event-stream text. Auth headers are already redacted. The same exports are available from `GET /api/sessions/:id/export?scope=latest|all`.
 
 ## Configure which URLs are captured
 

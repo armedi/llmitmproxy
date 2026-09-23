@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import type { Block, Message, RequestDetail, ToolDef } from "../api";
+import { clampMarkdown, Markdown, MarkdownMode } from "./Markdown";
 
 const CLAMP = 1600;
 
@@ -18,8 +19,8 @@ export function Conversation({ detail }: { detail: RequestDetail }) {
   return (
     <div className="conversation">
       {n.system.length > 0 && (
-        <Section title="System prompt" count={`${n.system.reduce((a, b) => a + (b.type === "text" ? b.text.length : 0), 0).toLocaleString()} chars`}>
-          <Blocks blocks={n.system} toolNames={toolNames} />
+        <Section title="System prompt">
+          <SystemBlocks blocks={n.system} toolNames={toolNames} />
         </Section>
       )}
       {n.tools.length > 0 && (
@@ -37,37 +38,48 @@ export function Conversation({ detail }: { detail: RequestDetail }) {
         <MessageView key={i} index={i} message={m} toolNames={toolNames} />
       ))}
 
-      <div className="response">
-        <div className="role-label">
-          Response
-          {detail.state === "pending" && (
-            <span className="muted">
-              {" "}
-              · <span className="spinner" /> waiting for response…
-            </span>
+      {(detail.state === "pending" || n.response) && (
+        <div className="msg assistant">
+          <div className="role-label">
+            assistant <span className="muted">#{n.messages.length + 1}</span>
+            {detail.state === "pending" && (
+              <span className="muted">
+                {" "}
+                · <span className="spinner" /> responding…
+              </span>
+            )}
+          </div>
+          {n.response?.error && <div className="error-banner">{n.response.error}</div>}
+          {n.response && n.response.blocks.length > 0 ? (
+            <Blocks blocks={n.response.blocks} toolNames={toolNames} prose />
+          ) : (
+            detail.state !== "pending" && !n.response?.error && <div className="muted">(empty response)</div>
           )}
         </div>
-        {n.response?.error && <div className="error-banner">{n.response.error}</div>}
-        {n.response && n.response.blocks.length > 0 ? (
-          <div className="msg assistant final">
-            <Blocks blocks={n.response.blocks} toolNames={toolNames} />
-          </div>
-        ) : (
-          detail.state !== "pending" && !n.response?.error && <div className="muted">(empty response)</div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
 function Section({ title, count, children }: { title: string; count?: string; children: React.ReactNode }) {
   return (
-    <details className="section">
-      <summary>
-        {title} {count && <span className="muted">· {count}</span>}
-      </summary>
+    <LazyDetails className="section" summary={<>{title} {count && <span className="muted">· {count}</span>}</>}>
       <div className="section-body">{children}</div>
-    </details>
+    </LazyDetails>
+  );
+}
+
+// The system prompt is often several blocks (e.g. Anthropic's `system` array); keep them visibly separate.
+function SystemBlocks({ blocks, toolNames }: { blocks: Block[]; toolNames: Map<string, string> }) {
+  if (blocks.length === 1) return <Blocks blocks={blocks} toolNames={toolNames} prose />;
+  return (
+    <>
+      {blocks.map((b, i) => (
+        <div key={i} className="sys-block">
+          <BlockView block={b} toolNames={toolNames} prose />
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -96,58 +108,75 @@ function MessageView({ message, index, toolNames }: { message: Message; index: n
       <div className="role-label">
         {role} <span className="muted">#{index + 1}</span>
       </div>
-      <Blocks blocks={message.content} toolNames={toolNames} />
+      <Blocks blocks={message.content} toolNames={toolNames} prose />
     </div>
   );
 }
 
-function Blocks({ blocks, toolNames }: { blocks: Block[]; toolNames: Map<string, string> }) {
+/** `prose`: text blocks are conversation text (markdown-able) rather than tool output. */
+function Blocks({ blocks, toolNames, prose = false }: { blocks: Block[]; toolNames: Map<string, string>; prose?: boolean }) {
   return (
     <>
       {blocks.map((b, i) => (
-        <BlockView key={i} block={b} toolNames={toolNames} />
+        <BlockView key={i} block={b} toolNames={toolNames} prose={prose} />
       ))}
     </>
   );
 }
 
-function BlockView({ block: b, toolNames }: { block: Block; toolNames: Map<string, string> }) {
+function BlockView({ block: b, toolNames, prose }: { block: Block; toolNames: Map<string, string>; prose: boolean }) {
   switch (b.type) {
     case "text":
-      return <Text text={b.text} />;
+      return <Text text={b.text} markdown={prose} />;
     case "thinking":
       return (
-        <details className="thinking">
-          <summary>{b.redacted || !b.text ? "Thinking (not returned by the API)" : `Thinking · ${b.text.length.toLocaleString()} chars`}</summary>
-          {b.text && <Text text={b.text} />}
-        </details>
+        <LazyDetails
+          className="thinking"
+          summary={b.redacted || !b.text ? "Thinking (not returned by the API)" : "Thinking"}
+        >
+          {b.text && <Text text={b.text} markdown />}
+        </LazyDetails>
       );
     case "tool_use":
       return (
-        <div className="tool-card call" id={b.id ? `tool-${b.id}` : undefined}>
-          <div className="tool-head">
-            <span className="tool-icon">→</span> <code>{b.name}</code>
-            {b.id && <span className="muted mono"> {b.id}</span>}
-          </div>
+        <LazyDetails
+          className="tool-card call"
+          id={b.id ? `tool-${b.id}` : undefined}
+          summary={
+            <span className="tool-head">
+              <span className="tool-icon">→</span> <code>{b.name}</code>
+              <span className="tool-preview">{inputPreview(b.input)}</span>
+            </span>
+          }
+        >
+          {b.id && <div className="muted mono tool-id">{b.id}</div>}
           <ToolInput input={b.input} />
-        </div>
+        </LazyDetails>
       );
     case "tool_result": {
       const name = b.name ?? (b.toolUseId ? toolNames.get(b.toolUseId) : undefined);
       return (
-        <div className={`tool-card result ${b.isError ? "is-error" : ""}`}>
-          <div className="tool-head">
-            <span className="tool-icon">←</span> {name ? <code>{name}</code> : "result"}
-            {b.toolUseId && (
-              <a className="muted mono" href={`#tool-${b.toolUseId}`}>
-                {" "}
-                {b.toolUseId}
-              </a>
-            )}
-            {b.isError && <span className="chip bad">error</span>}
-          </div>
+        <LazyDetails
+          className={`tool-card result ${b.isError ? "is-error" : ""}`}
+          summary={
+            <span className="tool-head">
+              <span className="tool-icon">←</span> {name ? <code>{name}</code> : "result"}
+              {b.isError && <span className="chip bad">error</span>}
+              <span className="tool-preview">{firstLine(b.content.map((c) => (c.type === "text" ? c.text : "")).join("\n"))}</span>
+            </span>
+          }
+        >
+          {b.toolUseId && (
+            <a
+              className="muted mono tool-id"
+              href={`#tool-${b.toolUseId}`}
+              onClick={() => document.getElementById(`tool-${b.toolUseId}`)?.setAttribute("open", "")}
+            >
+              {b.toolUseId}
+            </a>
+          )}
           <Blocks blocks={b.content} toolNames={toolNames} />
-        </div>
+        </LazyDetails>
       );
     }
     case "image":
@@ -164,6 +193,17 @@ function BlockView({ block: b, toolNames }: { block: Block; toolNames: Map<strin
         </details>
       );
   }
+}
+
+const firstLine = (text: string) => text.trim().split("\n")[0]!.slice(0, 200);
+
+/** One-line hint for a collapsed tool call: its description, or else its first string argument. */
+function inputPreview(input: unknown): string {
+  if (typeof input === "string") return firstLine(input);
+  if (!input || typeof input !== "object") return "";
+  const o = input as Record<string, unknown>;
+  const s = typeof o.description === "string" ? o.description : Object.values(o).find((v): v is string => typeof v === "string");
+  return s ? firstLine(s) : "";
 }
 
 function ToolInput({ input }: { input: unknown }) {
@@ -184,12 +224,30 @@ function ToolInput({ input }: { input: unknown }) {
   return <pre className="json">{typeof input === "string" ? input : JSON.stringify(input, null, 2)}</pre>;
 }
 
-function Text({ text }: { text: string }) {
+/** A <details> whose body is only rendered once it has been opened. */
+function LazyDetails({ className, id, summary, children }: { className: string; id?: string; summary: React.ReactNode; children: React.ReactNode }) {
+  const [seen, setSeen] = useState(false);
+  return (
+    <details className={className} id={id} onToggle={(e) => e.currentTarget.open && setSeen(true)}>
+      <summary>{summary}</summary>
+      {seen && children}
+    </details>
+  );
+}
+
+function Text({ text, markdown = false }: { text: string; markdown?: boolean }) {
   const [open, setOpen] = useState(false);
+  const enabled = useContext(MarkdownMode);
   const long = text.length > CLAMP;
+  const md = markdown && enabled;
+  const shown = useMemo(() => (!long || open ? text : md ? clampMarkdown(text, CLAMP) : text.slice(0, CLAMP) + "…"), [text, long, open, md]);
   return (
     <div className="text">
-      <pre>{long && !open ? text.slice(0, CLAMP) + "…" : text}</pre>
+      {md ? (
+        <Markdown text={shown} />
+      ) : (
+        <pre>{shown}</pre>
+      )}
       {long && (
         <button className="link" onClick={() => setOpen(!open)}>
           {open ? "Show less" : `Show all (${text.length.toLocaleString()} chars)`}

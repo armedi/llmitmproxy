@@ -58,7 +58,6 @@ async function get<T>(path: string): Promise<T> {
 
 export const api = {
   sessions: () => get<Session[]>("/api/sessions"),
-  session: (id: number) => get<{ session: Session; requests: RequestSummary[] }>(`/api/sessions/${id}`),
   request: (id: number) => get<RequestDetail>(`/api/requests/${id}`),
   deleteSession: (id: number) => fetch(`/api/sessions/${id}`, { method: "DELETE" }),
   clear: () => fetch("/api/sessions", { method: "DELETE" }),

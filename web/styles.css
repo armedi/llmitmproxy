@@ -79,10 +79,6 @@ code,
 .muted {
   color: var(--muted);
 }
-.center {
-  text-align: center;
-  padding: 12px;
-}
 .spacer {
   flex: 1;
 }
@@ -307,9 +303,6 @@ code,
   color: var(--bad);
   border-color: #f0717855;
 }
-.chip.live {
-  color: var(--ok);
-}
 .chip.pending {
   color: var(--warn);
 }
@@ -320,12 +313,6 @@ code,
   color: var(--muted);
   font-family: var(--mono);
   font-size: 11px;
-}
-.req-picker {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  color: var(--muted);
 }
 .tabs {
   display: flex;
@@ -369,6 +356,15 @@ code,
 .section-body {
   padding: 0 12px 12px;
 }
+.sys-block {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+  padding: 8px 12px;
+}
+.sys-block + .sys-block {
+  margin-top: 8px;
+}
 .tool-def {
   border-top: 1px solid var(--border);
   padding: 6px 0;
@@ -393,10 +389,6 @@ code,
 .msg.system {
   background: var(--panel-2);
 }
-.msg.final {
-  border-color: #7dc87d77;
-  box-shadow: 0 0 0 1px #7dc87d33;
-}
 .role-label {
   font-size: 11px;
   text-transform: uppercase;
@@ -405,17 +397,125 @@ code,
   margin-bottom: 4px;
   font-weight: 600;
 }
-.response {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
-}
 .text pre {
   white-space: pre-wrap;
   word-break: break-word;
   font: inherit;
   margin: 2px 0;
 }
+
+/* ---------- markdown ---------- */
+.md {
+  word-break: break-word;
+  margin: 2px 0;
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md p,
+.md ul,
+.md ol,
+.md blockquote,
+.md table,
+.md pre,
+.md .md-literal {
+  margin: 0 0 8px;
+}
+.md h1,
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+.md h1,
+.md h2 {
+  font-size: 14px;
+}
+.md ul,
+.md ol {
+  padding-left: 22px;
+}
+.md li + li,
+.md li > ul,
+.md li > ol {
+  margin-top: 2px;
+}
+.md li > p {
+  margin: 0;
+}
+.md li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -18px;
+}
+.md code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.md pre {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: #0008;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  white-space: pre;
+}
+.md pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.md blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+  color: var(--muted);
+}
+.md table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+.md th,
+.md td {
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  text-align: left;
+}
+.md th {
+  background: var(--panel-2);
+  font-weight: 600;
+}
+.md hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 10px 0;
+}
+.md a {
+  color: var(--accent);
+}
+/* Raw HTML/XML-like tags from prompts, shown verbatim. */
+.md .md-literal {
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.md span.md-literal {
+  margin: 0;
+}
+
 .thinking {
   color: var(--muted);
   margin: 4px 0;
@@ -443,13 +543,44 @@ code,
 .tool-card:target {
   outline: 1px solid var(--accent);
 }
+.tool-card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.tool-card > summary::-webkit-details-marker {
+  display: none;
+}
+.tool-card > summary::before {
+  content: "▸";
+  color: var(--muted);
+  float: left;
+  margin-right: 6px;
+}
+.tool-card[open] > summary {
+  margin-bottom: 4px;
+}
+.tool-card[open] > summary::before {
+  content: "▾";
+}
 .tool-head {
   display: flex;
   gap: 6px;
   align-items: center;
-  margin-bottom: 4px;
+  min-width: 0;
 }
-.tool-head a {
+.tool-preview {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.tool-id {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 4px;
   text-decoration: none;
 }
 .tool-icon {

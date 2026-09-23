@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import index from "../web/index.html";
-import { downloadName, exportRequest, exportSession } from "./export";
+import { downloadName, exportSession } from "./export";
 import { Store } from "./store";
 import type { IngestEvent } from "./types";
 
@@ -55,10 +55,6 @@ const server = Bun.serve({
       },
     },
     "/api/sessions/:id": {
-      GET: (req) => {
-        const session = store.getSession(idParam(req));
-        return session ? json({ session, requests: store.listRequests(session.id) }) : json({ error: "not found" }, 404);
-      },
       DELETE: (req) => {
         store.deleteSession(idParam(req));
         server.publish("updates", JSON.stringify({ type: "deleted", id: idParam(req) }));
@@ -74,12 +70,6 @@ const server = Bun.serve({
     "/api/requests/:id": (req) => {
       const r = store.getRequest(idParam(req));
       return r ? json(r) : json({ error: "not found" }, 404);
-    },
-    "/api/requests/:id/export": (req) => {
-      const r = store.getRequest(idParam(req));
-      if (!r) return json({ error: "not found" }, 404);
-      const session = store.getSession(r.session_id)!;
-      return attachment({ session: { id: session.id, title: session.title }, ...exportRequest(r) }, downloadName(session, `request-${r.id}`));
     },
     "/api/config": {
       GET: async () => json({ path: CONFIG_PATH, config: await readConfig() }),
