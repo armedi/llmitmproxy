@@ -5,7 +5,7 @@ import { Store } from "./store";
 import type { IngestEvent } from "./types";
 
 const ROOT = resolve(import.meta.dir, "..");
-const CONFIG_PATH = process.env.LLMVIEW_CONFIG ?? resolve(ROOT, "llmview.config.json");
+const CONFIG_PATH = process.env.MITLLMPROXY_CONFIG ?? resolve(ROOT, "mitllmproxy.config.json");
 
 async function readConfig(): Promise<Record<string, any>> {
   const f = Bun.file(CONFIG_PATH);
@@ -14,7 +14,7 @@ async function readConfig(): Promise<Record<string, any>> {
 
 const config = await readConfig();
 const port = Number(process.env.PORT ?? config.port ?? 4545);
-const store = new Store(process.env.LLMVIEW_DB ?? resolve(ROOT, config.db ?? "llmview.db"));
+const store = new Store(process.env.MITLLMPROXY_DB ?? resolve(ROOT, config.db ?? "mitllmproxy.db"));
 
 const json = (data: unknown, status = 200) => Response.json(data, { status });
 const idParam = (req: { params: { id: string } }) => Number(req.params.id);
@@ -90,6 +90,6 @@ const server = Bun.serve({
   },
 });
 
-console.log(`llmview UI:     ${server.url}`);
+console.log(`UI:              ${server.url}`);
 console.log(`ingest endpoint: ${server.url}ingest`);
 console.log(`database:        ${store.db.filename}`);

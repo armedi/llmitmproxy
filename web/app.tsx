@@ -96,7 +96,7 @@ function App() {
       <aside className="sidebar">
         <header className="sidebar-head">
           <div className="brand">
-            llmview <span className={`dot ${connected ? "on" : "off"}`} title={connected ? "live" : "disconnected"} />
+            mitllmproxy <span className={`dot ${connected ? "on" : "off"}`} title={connected ? "live" : "disconnected"} />
           </div>
           <div className="head-actions">
             <button className="ghost" onClick={() => setShowSettings(true)} title="URL filters">
@@ -146,7 +146,7 @@ function App() {
           ))}
           {!visible.length && (
             <li className="empty">
-              {sessions.length ? "No sessions match the filters." : "Waiting for traffic… Route a client through mitmproxy with the llmview addon."}
+              {sessions.length ? "No sessions match the filters." : "Waiting for traffic… Route a client through mitmproxy with the mitllmproxy addon."}
             </li>
           )}
         </ul>

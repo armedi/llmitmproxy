@@ -1,6 +1,6 @@
 {
   "port": 4545,
-  "db": "llmview.db",
+  "db": "mitllmproxy.db",
   "urls": [
     "api.anthropic.com/v1/messages",
     "api.openai.com/v1/chat/completions",

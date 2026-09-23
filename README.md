@@ -1,13 +1,13 @@
-# llmview
+# mitllmproxy
 
 A live viewer for the LLM calls your agents make, captured through mitmproxy.
 
-Agents resend the whole conversation on every turn, so llmview groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Older requests are still available from the "Request N of N" picker.
+Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Older requests are still available from the "Request N of N" picker.
 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Both streaming (SSE) and non-streaming responses are supported.
 
 ```
-client ──HTTPS_PROXY──▶ mitmdump -s addon/llmview_addon.py ──POST /ingest──▶ bun server (:4545) ──ws──▶ UI
+client ──HTTPS_PROXY──▶ mitmdump -s addon/mitllmproxy_addon.py ──POST /ingest──▶ bun server (:4545) ──ws──▶ UI
 ```
 
 ## Why an addon (and not mitmweb's API)
@@ -22,7 +22,13 @@ The addon uses only the standard library, so nothing needs to be installed into 
 
 ```sh
 bun install
-bun start            # UI + ingest server on http://127.0.0.1:4545
+bun start            # server + proxy together: UI on http://127.0.0.1:4545, mitmdump on :8080
+```
+
+To run them separately, for example to use mitmweb instead of mitmdump:
+
+```sh
+bun run server       # UI + ingest server on http://127.0.0.1:4545
 bun run proxy        # mitmdump on :8080 with the addon (or: bun run proxy:web for mitmweb)
 ```
 
@@ -40,7 +46,7 @@ HTTPS_PROXY=http://127.0.0.1:8080 SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.p
 HTTPS_PROXY=http://127.0.0.1:8080 SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.pem codex
 ```
 
-To use the addon with a mitmproxy you already run, add `-s /path/to/llmview/addon/llmview_addon.py`.
+To use the addon with a mitmproxy you already run, add `-s /path/to/mitllmproxy/addon/mitllmproxy_addon.py`.
 
 To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch requests go from pending to done.
 
@@ -55,7 +61,7 @@ JSON bodies are included as parsed objects. Streamed (SSE) responses stay as the
 
 ## Configure which URLs are captured
 
-`llmview.config.json` (you can also edit it from **Filters** in the UI):
+`mitllmproxy.config.json` (you can also edit it from **Filters** in the UI):
 
 - `urls`: only POST requests matching one of these are captured.
   - A plain pattern is a glob matched against `host/path`, without the scheme or query. `*` matches anything, including `/`.
@@ -81,8 +87,19 @@ The addon reloads the file within a second of it changing, so you don't need to 
 ```sh
 bun test          # parser + session-grouping tests
 bun run typecheck
-bun run dev       # server with hot reload
+bun run dev       # server (hot reload) + proxy on dev ports
+bun run dev:replay
 ```
+
+The dev stack runs alongside `bun start` without touching it:
+
+|          | `bun start`      | `bun run dev`        |
+| -------- | ---------------- | -------------------- |
+| UI       | :4545            | :4546                |
+| Proxy    | :8080            | :9080                |
+| Database | `mitllmproxy.db` | `mitllmproxy-dev.db` |
+
+Point a client at `HTTPS_PROXY=http://127.0.0.1:9080` to send its traffic to the dev build. Both stacks share `mitllmproxy.config.json`, so filter edits in either UI apply to both.
 
 Layout:
 

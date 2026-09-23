@@ -1,16 +1,16 @@
 """
-llmview mitmproxy addon.
+mitllmproxy mitmproxy addon.
 
-Filters flows by the URL patterns in llmview.config.json and forwards matching
-ones to the llmview server. Stdlib only, so it runs inside mitmproxy's own
+Filters flows by the URL patterns in mitllmproxy.config.json and forwards matching
+ones to the mitllmproxy server. Stdlib only, so it runs inside mitmproxy's own
 environment without installing anything.
 
-    mitmdump -s addon/llmview_addon.py
-    mitmweb  -s addon/llmview_addon.py
+    mitmdump -s addon/mitllmproxy_addon.py
+    mitmweb  -s addon/mitllmproxy_addon.py
 
 Environment overrides:
-    LLMVIEW_CONFIG  path to llmview.config.json (default: repo root)
-    LLMVIEW_URL     ingest endpoint (default: http://127.0.0.1:<port>/ingest)
+    MITLLMPROXY_CONFIG  path to mitllmproxy.config.json (default: repo root)
+    MITLLMPROXY_URL     ingest endpoint (default: http://127.0.0.1:<port>/ingest)
 """
 
 from __future__ import annotations
@@ -30,11 +30,11 @@ from pathlib import Path
 
 from mitmproxy import http
 
-log = logging.getLogger("llmview")
+log = logging.getLogger("mitllmproxy")
 
 CONFIG_PATH = Path(
-    os.environ.get("LLMVIEW_CONFIG")
-    or Path(__file__).resolve().parent.parent / "llmview.config.json"
+    os.environ.get("MITLLMPROXY_CONFIG")
+    or Path(__file__).resolve().parent.parent / "mitllmproxy.config.json"
 )
 REDACT_HEADERS = {
     "authorization",
@@ -73,7 +73,7 @@ class Config:
             mtime = self.path.stat().st_mtime
         except OSError:
             if self.mtime == -1.0:
-                log.warning("llmview: config not found at %s", self.path)
+                log.warning("mitllmproxy: config not found at %s", self.path)
                 self.mtime = -2.0
             return
         if mtime == self.mtime:
@@ -81,13 +81,13 @@ class Config:
         try:
             data = json.loads(self.path.read_text())
         except (OSError, ValueError) as e:
-            log.warning("llmview: failed to read config: %s", e)
+            log.warning("mitllmproxy: failed to read config: %s", e)
             return
         self.mtime = mtime
         self.port = int(data.get("port", 4545))
         self.include = [_compile(p) for p in data.get("urls", [])]
         self.exclude = [_compile(p) for p in data.get("ignore", [])]
-        log.info("llmview: loaded %d url patterns from %s", len(self.include), self.path)
+        log.info("mitllmproxy: loaded %d url patterns from %s", len(self.include), self.path)
 
     def matches(self, url: str) -> bool:
         self.refresh()
@@ -121,17 +121,17 @@ def _body(msg: http.Message | None) -> dict | None:
         return {"base64": base64.b64encode(content).decode("ascii")}
 
 
-class LLMView:
+class MitLlmProxy:
     def __init__(self) -> None:
         self.config = Config(CONFIG_PATH)
         self.q: queue.Queue[dict] = queue.Queue(maxsize=1000)
         self.down_since: float | None = None
-        threading.Thread(target=self._worker, name="llmview-sender", daemon=True).start()
+        threading.Thread(target=self._worker, name="mitllmproxy-sender", daemon=True).start()
 
     # ---- sending -------------------------------------------------------
 
     def _endpoint(self) -> str:
-        return os.environ.get("LLMVIEW_URL") or f"http://127.0.0.1:{self.config.port}/ingest"
+        return os.environ.get("MITLLMPROXY_URL") or f"http://127.0.0.1:{self.config.port}/ingest"
 
     def _worker(self) -> None:
         while True:
@@ -144,18 +144,18 @@ class LLMView:
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     resp.read()
                 if self.down_since is not None:
-                    log.info("llmview: server reachable again")
+                    log.info("mitllmproxy: server reachable again")
                     self.down_since = None
             except (urllib.error.URLError, OSError) as e:
                 if self.down_since is None:
-                    log.warning("llmview: cannot reach %s (%s); dropping events until it is up", self._endpoint(), e)
+                    log.warning("mitllmproxy: cannot reach %s (%s); dropping events until it is up", self._endpoint(), e)
                     self.down_since = time.time()
 
     def _send(self, event: dict) -> None:
         try:
             self.q.put_nowait(event)
         except queue.Full:
-            log.warning("llmview: send queue full, dropping event")
+            log.warning("mitllmproxy: send queue full, dropping event")
 
     # ---- helpers -------------------------------------------------------
 
@@ -172,10 +172,10 @@ class LLMView:
         }
 
     def _want(self, flow: http.HTTPFlow) -> bool:
-        if flow.metadata.get("llmview") is not None:
-            return flow.metadata["llmview"]
+        if flow.metadata.get("mitllmproxy") is not None:
+            return flow.metadata["mitllmproxy"]
         ok = flow.request.method == "POST" and self.config.matches(flow.request.pretty_url)
-        flow.metadata["llmview"] = ok
+        flow.metadata["mitllmproxy"] = ok
         return ok
 
     # ---- mitmproxy hooks -----------------------------------------------
@@ -212,4 +212,4 @@ class LLMView:
         self._send(event)
 
 
-addons = [LLMView()]
+addons = [MitLlmProxy()]

@@ -1,11 +1,11 @@
 /**
- * POST the test fixtures to a running llmview server to try the UI without real traffic.
+ * POST the test fixtures to a running mitllmproxy server to try the UI without real traffic.
  *   bun scripts/replay.ts [--slow]
  */
 import { anthropicTurns, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "../test/fixtures";
 
-const config = await Bun.file(new URL("../llmview.config.json", import.meta.url)).json().catch(() => ({}));
-const url = process.env.LLMVIEW_URL ?? `http://127.0.0.1:${config.port ?? 4545}/ingest`;
+const config = await Bun.file(new URL("../mitllmproxy.config.json", import.meta.url)).json().catch(() => ({}));
+const url = process.env.MITLLMPROXY_URL ?? `http://127.0.0.1:${config.port ?? 4545}/ingest`;
 const slow = process.argv.includes("--slow");
 const now = Date.now() / 1000;
 

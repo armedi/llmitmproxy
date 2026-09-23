@@ -122,7 +122,7 @@ async function download(url: string) {
     alert(`Export failed: HTTP ${r.status}.${hint}`);
     return;
   }
-  const name = r.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "llmview-export.json";
+  const name = r.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "mitllmproxy-export.json";
   const href = URL.createObjectURL(await r.blob());
   const a = Object.assign(document.createElement("a"), { href, download: name });
   a.click();
