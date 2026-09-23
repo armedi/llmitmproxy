@@ -1,0 +1,18 @@
+{
+  "port": 4545,
+  "db": "llmview.db",
+  "urls": [
+    "api.anthropic.com/v1/messages",
+    "api.openai.com/v1/chat/completions",
+    "api.openai.com/v1/responses",
+    "chatgpt.com/backend-api/codex/responses",
+    "generativelanguage.googleapis.com/*:generateContent",
+    "generativelanguage.googleapis.com/*:streamGenerateContent",
+    "cloudcode-pa.googleapis.com/*:generateContent",
+    "cloudcode-pa.googleapis.com/*:streamGenerateContent",
+    "re:^https?://[^/]+(/[^?]*)?/v1/(messages|chat/completions|responses)(\\?|$)"
+  ],
+  "ignore": [
+    "*/v1/messages/count_tokens*"
+  ]
+}
