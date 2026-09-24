@@ -176,6 +176,7 @@ class MitLlmProxy:
         event.update(
             {
                 "status": resp.status_code,
+                "response_started_at": resp.timestamp_start,
                 "ended_at": resp.timestamp_end or time.time(),
                 "response_headers": _headers(resp.headers),
                 "response_body": _body(resp),
@@ -191,6 +192,7 @@ class MitLlmProxy:
         event["ended_at"] = time.time()
         if flow.response is not None:
             event["status"] = flow.response.status_code
+            event["response_started_at"] = flow.response.timestamp_start
             event["response_headers"] = _headers(flow.response.headers)
             event["response_body"] = _body(flow.response)
         self._send(event)

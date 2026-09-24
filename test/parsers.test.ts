@@ -76,6 +76,8 @@ describe("openai chat", () => {
     expect(n2.messages.map((m) => m.role)).toEqual(["user", "assistant", "tool"]);
     expect(n2.response?.blocks).toEqual([{ type: "text", text: "It's 21°C in Paris." }]);
     expect(n2.response?.usage?.cacheRead).toBe(40);
+    // Cached tokens are reported inside prompt_tokens; input is the uncached part.
+    expect(n2.response?.usage?.input).toBe(40);
   });
 });
 

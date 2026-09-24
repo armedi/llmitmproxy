@@ -21,6 +21,12 @@ export interface ToolDef {
   schema?: unknown;
 }
 
+/**
+ * Token counts for one response. `input` excludes cached tokens for every provider
+ * (OpenAI and Gemini report them inside the prompt count; the parsers subtract them),
+ * so input + cacheRead + cacheWrite is the full prompt size. `output` includes reasoning
+ * tokens (`reasoning` is the part of it spent thinking).
+ */
 export interface Usage {
   input?: number;
   output?: number;
@@ -65,6 +71,8 @@ export interface IngestEvent {
   url: string;
   started_at: number;
   ended_at?: number;
+  /** When the response headers arrived. */
+  response_started_at?: number;
   status?: number;
   error?: string;
   request_headers?: Record<string, string>;

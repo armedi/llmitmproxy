@@ -1,39 +1,36 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { api, fmtAgo, fmtTokens, useUpdates, type Session } from "./api";
+import { api, useUpdates, type Session } from "./api";
+import { Help } from "./components/Help";
 import { SessionView } from "./components/SessionView";
+import { arrange, type Filters, readFilters, SessionList, writeFilters } from "./components/Sidebar";
+import { useKeys, useNow, useResizable, useStored } from "./hooks";
+import { useTheme } from "./theme";
 
-const PROVIDER_LABEL: Record<string, string> = {
-  anthropic: "Anthropic",
-  "openai-chat": "OpenAI Chat",
-  "openai-responses": "OpenAI Responses",
-  gemini: "Gemini",
-  unknown: "Unknown",
-};
-
-function selectedFromPath(): number | null {
-  const m = location.pathname.match(/^\/session\/(\d+)/);
-  return m ? Number(m[1]) : null;
+interface Route {
+  session: number | null;
+  request: number | null;
 }
 
-function useNow(ms = 5000) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), ms);
-    return () => clearInterval(t);
-  }, [ms]);
-  return now;
+function routeFromPath(): Route {
+  const m = location.pathname.match(/^\/session\/(\d+)(?:\/request\/(\d+))?/);
+  return { session: m ? Number(m[1]) : null, request: m?.[2] ? Number(m[2]) : null };
 }
+
+const THEME_LABEL = { system: "Auto", light: "Light", dark: "Dark" } as const;
 
 function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [selected, setSelected] = useState<number | null>(selectedFromPath);
+  const [route, setRoute] = useState<Route>(routeFromPath);
   const [connected, setConnected] = useState(false);
-  const [query, setQuery] = useState("");
-  const [provider, setProvider] = useState("");
-  const [hideOneOff, setHideOneOff] = useState(() => localStorage.getItem("hideOneOff") === "1");
+  const [filters, setFilters] = useState<Filters>(readFilters);
   const [tick, setTick] = useState<{ sessionId: number; n: number }>({ sessionId: 0, n: 0 });
+  const [sidebarOpen, setSidebarOpen] = useStored("sidebar", true);
+  const [help, setHelp] = useState(false);
+  const [theme, cycleTheme] = useTheme();
+  const sidebar = useResizable("sidebarWidth", 340, 220, 520, "right");
   const now = useNow();
+  const selected = route.session;
 
   const reload = useCallback(() => api.sessions().then(setSessions), []);
   useEffect(() => {
@@ -41,23 +38,23 @@ function App() {
   }, [reload]);
 
   useEffect(() => {
-    const onPop = () => setSelected(selectedFromPath());
+    const onPop = () => setRoute(routeFromPath());
     addEventListener("popstate", onPop);
     return () => removeEventListener("popstate", onPop);
   }, []);
 
-  useEffect(() => localStorage.setItem("hideOneOff", hideOneOff ? "1" : "0"), [hideOneOff]);
+  useEffect(() => writeFilters(filters), [filters]);
 
   useUpdates(
     (u) => {
       if (u.type === "reset") {
         setSessions([]);
-        setSelected(null);
+        setRoute({ session: null, request: null });
       } else if (u.type === "deleted") {
         setSessions((s) => s.filter((x) => !u.ids.includes(x.id)));
       } else if (u.type === "update" && u.session) {
-        // A new session in a group changes its main session's child count, so refetch.
-        if (!sessions.some((s) => s.id === u.session.id) && u.session.session_id) reload();
+        // A new session in a group changes its main session's child count and group cost, so refetch.
+        if (u.session.session_id && (!sessions.some((s) => s.id === u.session.id) || u.session.parent_id != null)) reload();
         setSessions((list) => [u.session, ...list.filter((s) => s.id !== u.session.id)].sort((a, b) => b.updated_at - a.updated_at));
         setTick((t) => ({ sessionId: u.session.id, n: t.n + 1 }));
       }
@@ -68,90 +65,69 @@ function App() {
     },
   );
 
-  const select = (id: number | null) => {
-    setSelected(id);
-    history.pushState(null, "", id ? `/session/${id}` : "/");
+  const navigate = (r: Route) => {
+    setRoute(r);
+    const path = r.session ? `/session/${r.session}${r.request ? `/request/${r.request}` : ""}` : "/";
+    history.pushState(null, "", path + location.search);
   };
+  const select = (id: number | null) => navigate({ session: id, request: null });
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return sessions.filter(
-      (s) =>
-        s.parent_id == null &&
-        (!provider || s.provider === provider) &&
-        (!hideOneOff || s.request_count > 1 || s.latest_msg_count > 1 || s.pending > 0 || s.child_count > 0) &&
-        (!q || s.title.toLowerCase().includes(q) || (s.model ?? "").toLowerCase().includes(q)),
-    );
-  }, [sessions, query, provider, hideOneOff]);
+  const { groups, children } = useMemo(() => arrange(sessions, filters, now), [sessions, filters, now]);
+  const order = useMemo(() => groups.flatMap((g) => g.roots.flatMap((r) => [r, ...(children.get(r.id) ?? [])])), [groups, children]);
 
   // Auto-select the newest session on first load.
   useEffect(() => {
-    if (selected == null && visible[0]) select(visible[0].id);
-  }, [visible, selected]);
+    if (selected == null && groups[0]?.roots[0]) select(groups[0].roots[0].id);
+  }, [groups, selected]);
 
-  const providers = [...new Set(sessions.map((s) => s.provider))];
   const current = sessions.find((s) => s.id === selected);
-  const activeRoot = current?.parent_id ?? current?.id;
+  const step = (d: number) => {
+    const roots = order.filter((s) => s.parent_id == null);
+    const at = roots.findIndex((s) => s.id === (current?.parent_id ?? current?.id));
+    const next = roots[Math.max(0, Math.min(roots.length - 1, at + d))];
+    if (next) select(next.id);
+  };
+  useKeys({
+    "]": () => step(1),
+    "[": () => step(-1),
+    b: () => setSidebarOpen((o) => !o),
+    "?": () => setHelp((h) => !h),
+    Escape: () => (help ? setHelp(false) : false),
+  });
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <header className="sidebar-head">
-          <div className="brand">
-            mitllmproxy <span className={`dot ${connected ? "on" : "off"}`} title={connected ? "live" : "disconnected"} />
-          </div>
-          <div className="head-actions">
-            <button
-              className="ghost"
-              onClick={() => confirm("Delete all captured sessions?") && api.clear()}
-              title="Delete all sessions"
-            >
-              Clear
-            </button>
-          </div>
-        </header>
-        <div className="filters">
-          <input placeholder="Search sessions…" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <div className="filter-row">
-            <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-              <option value="">All providers</option>
-              {providers.map((p) => (
-                <option key={p} value={p}>
-                  {PROVIDER_LABEL[p] ?? p}
-                </option>
-              ))}
-            </select>
-            <label className="check">
-              <input type="checkbox" checked={hideOneOff} onChange={(e) => setHideOneOff(e.target.checked)} />
-              Hide one-off calls
-            </label>
-          </div>
-        </div>
-        <ul className="session-list">
-          {visible.map((s) => (
-            <li key={s.id} className={s.id === activeRoot ? "active" : ""} onClick={() => select(s.id)}>
-              <div className="s-title">
-                {s.pending > 0 && <span className="spinner" />}
-                {s.last_error && <span className="err-dot" title={s.last_error} />}
-                {s.title}
-              </div>
-              <div className="s-meta">
-                <span className={`badge p-${s.provider}`}>{s.model ?? PROVIDER_LABEL[s.provider]}</span>
-                <span>{s.request_count} req</span>
-                {s.child_count > 0 && <span title="Subagents and side calls">+{s.child_count} sub</span>}
-                <span>{fmtTokens(s.input_tokens + s.cache_read_tokens + s.cache_write_tokens)} in</span>
-                <span className="ago">{fmtAgo(s.updated_at, now)}</span>
-              </div>
-            </li>
-          ))}
-          {!visible.length && (
-            <li className="empty">
-              {sessions.length ? "No sessions match the filters." : "Waiting for traffic… Route a client through mitmproxy with the mitllmproxy addon."}
-            </li>
-          )}
-        </ul>
-      </aside>
+    <div className="app" style={{ gridTemplateColumns: sidebarOpen ? `${sidebar.width}px 1fr` : "1fr" }}>
+      {sidebarOpen && (
+        <aside className="sidebar">
+          <header className="sidebar-head">
+            <div className="brand">
+              mitllmproxy <span className={`dot ${connected ? "on" : "off"}`} title={connected ? "live" : "disconnected"} />
+            </div>
+            <div className="head-actions">
+              <button className="ghost" onClick={cycleTheme} title="Theme: follow the system, light or dark">
+                {THEME_LABEL[theme]}
+              </button>
+              <button className="ghost" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)">
+                ?
+              </button>
+              <button className="ghost" onClick={() => setSidebarOpen(false)} title="Hide sidebar (b)">
+                ⟨
+              </button>
+              <button className="ghost danger" onClick={() => confirm("Delete all captured sessions?") && api.clear()} title="Delete all sessions">
+                Clear
+              </button>
+            </div>
+          </header>
+          <SessionList sessions={sessions} groups={groups} children={children} filters={filters} onFilters={setFilters} selected={selected} onSelect={select} now={now} />
+          <div className="resize-handle right" onPointerDown={sidebar.onPointerDown} />
+        </aside>
+      )}
       <main className="main">
+        {!sidebarOpen && (
+          <button className="ghost sidebar-show" onClick={() => setSidebarOpen(true)} title="Show sidebar (b)">
+            ⟩
+          </button>
+        )}
         {current ? (
           <SessionView
             key={current.id}
@@ -159,6 +135,8 @@ function App() {
             parent={sessions.find((s) => s.id === current.parent_id)}
             children={sessions.filter((s) => s.parent_id === current.id)}
             onSelect={select}
+            requestId={route.request}
+            onOpenRequest={(id) => navigate({ session: current.id, request: id })}
             updateTick={tick.sessionId === current.id ? tick.n : 0}
             onDelete={() => api.deleteSession(current.id).then(() => select(current.parent_id))}
           />
@@ -166,6 +144,7 @@ function App() {
           <div className="placeholder">Select a session</div>
         )}
       </main>
+      {help && <Help onClose={() => setHelp(false)} />}
     </div>
   );
 }

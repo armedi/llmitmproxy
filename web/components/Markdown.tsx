@@ -1,7 +1,27 @@
 import { createContext, memo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
+import type { Element, Root as HastRoot } from "hast";
 import type { Html, Root } from "mdast";
+
+const HIGHLIGHT_LIMIT = 50_000;
+
+// Highlighting huge blocks freezes the page; mark them plain before rehype-highlight runs.
+function rehypeSkipHuge() {
+  return (tree: HastRoot) => {
+    const visit = (node: HastRoot | Element) => {
+      for (const child of node.children) {
+        if (child.type !== "element") continue;
+        if (child.tagName === "code") {
+          const len = child.children.reduce((a, c) => a + (c.type === "text" ? c.value.length : 0), 0);
+          if (len > HIGHLIGHT_LIMIT) child.properties.className = ["no-highlight"];
+        } else visit(child);
+      }
+    };
+    visit(tree);
+  };
+}
 
 // Prompts are full of XML-like tags (<system-reminder>, <command-name>, …). Never interpret
 // them as HTML: turn every raw-HTML node into literal text, keeping its line breaks.
@@ -42,12 +62,13 @@ const components: Components = {
 };
 
 const remarkPlugins = [remarkGfm, remarkLiteralHtml];
+const rehypePlugins = [rehypeSkipHuge, rehypeHighlight];
 
 /** Renders untrusted text as GFM markdown. Raw HTML is shown as text, never executed. */
 export const Markdown = memo(function Markdown({ text }: { text: string }) {
   return (
     <div className="md">
-      <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={components}>
         {text}
       </ReactMarkdown>
     </div>

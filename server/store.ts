@@ -1,7 +1,9 @@
 import { Database } from "bun:sqlite";
+import { detectClient } from "./clients";
 import { bodyText, normalizeRequest, normalizeResponse } from "./parsers";
+import { costOf, loadPricing, type Pricing } from "./pricing";
 import { fingerprint, matchSession, messageHashes, titleFor } from "./sessions";
-import type { IngestEvent, Normalized } from "./types";
+import type { IngestEvent, Normalized, Provider, Usage } from "./types";
 
 export interface SessionRow {
   id: number;
@@ -12,6 +14,8 @@ export interface SessionRow {
   session_id: string | null;
   agent_id: string | null;
   agent_name: string | null;
+  /** The agent app that sent the requests (claude-code, codex, …), when recognised. */
+  client: string | null;
   fingerprint: string;
   created_at: number;
   updated_at: number;
@@ -22,8 +26,16 @@ export interface SessionRow {
   output_tokens: number;
   cache_read_tokens: number;
   cache_write_tokens: number;
+  /** Estimated dollars across priced requests. */
+  cost: number;
+  /** Requests with usage but no known price. */
+  unpriced: number;
   pending: number;
   last_error: string | null;
+  /** Stop reason of the latest request's response. */
+  last_stop_reason: string | null;
+  /** For a main session: cost of the whole group, subagents included. Otherwise its own cost. */
+  group_cost: number;
   /** The group's main session, when this one is a subagent or side call. */
   parent_id: number | null;
   child_count: number;
@@ -39,18 +51,27 @@ export interface RequestSummary {
   url: string;
   status: number | null;
   started_at: number;
+  response_started_at: number | null;
   ended_at: number | null;
   msg_count: number;
   error: string | null;
-  usage: string | null;
+  usage: Usage | null;
+  cost: number | null;
+  stop_reason: string | null;
+  /** Names of the tools the response called. */
+  tool_calls: string[];
 }
 
 const SESSION_WINDOW_S = 24 * 3600;
+/** Bump when parsers change what they extract from responses, to re-parse stored ones. */
+const PARSER_VERSION = "2";
 
 export class Store {
   db: Database;
+  pricing: Pricing;
 
-  constructor(path: string) {
+  constructor(path: string, pricing: Pricing = loadPricing(path)) {
+    this.pricing = pricing;
     this.db = new Database(path, { create: true });
     this.db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
     this.db.exec(`
@@ -101,7 +122,92 @@ export class Store {
       );
       CREATE INDEX IF NOT EXISTS requests_session ON requests(session_id, id);
       CREATE INDEX IF NOT EXISTS requests_response_id ON requests(response_id);
+      CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     `);
+    this.addColumns("requests", { response_started_at: "REAL", cost: "REAL" });
+    this.addColumns("sessions", { client: "TEXT", cost: "REAL NOT NULL DEFAULT 0", unpriced: "INTEGER NOT NULL DEFAULT 0" });
+    this.maintain();
+  }
+
+  private addColumns(table: string, cols: Record<string, string>) {
+    const have = new Set(this.db.query<{ name: string }, []>(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [name, def] of Object.entries(cols)) if (!have.has(name)) this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${def}`);
+  }
+
+  private meta(key: string): string | null {
+    return this.db.query<{ value: string }, [string]>("SELECT value FROM meta WHERE key = ?").get(key)?.value ?? null;
+  }
+
+  private setMeta(key: string, value: string) {
+    this.db.query("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, value);
+  }
+
+  /** Bring stored data up to date with the current parsers and prices. Cheap when nothing changed. */
+  private maintain() {
+    this.db.transaction(() => {
+      const hasRows = this.db.query("SELECT 1 FROM requests LIMIT 1").get() != null;
+      const reparse = hasRows && this.meta("parser_version") !== PARSER_VERSION;
+      if (reparse) this.reparseResponses();
+      if (reparse || (hasRows && this.meta("pricing_hash") !== this.pricing.hash)) this.recomputeCosts();
+      if (reparse) this.rebuildTotals();
+      this.backfillClients();
+      this.setMeta("parser_version", PARSER_VERSION);
+      this.setMeta("pricing_hash", this.pricing.hash);
+    })();
+  }
+
+  /** Re-run the response parsers over stored bodies, so fixes apply to old captures. */
+  private reparseResponses() {
+    const rows = this.db
+      .query<Record<string, any>, []>(
+        "SELECT id, provider, flow_id, method, url, started_at, ended_at, state, status, error, response_headers, response_body, normalized FROM requests WHERE state != 'pending'",
+      )
+      .all();
+    const update = this.db.query("UPDATE requests SET normalized = ?, usage = ? WHERE id = ?");
+    for (const r of rows) {
+      const n: Normalized = JSON.parse(r.normalized);
+      const resp = normalizeResponse(r.provider as Provider, {
+        ...(r as any),
+        response_headers: JSON.parse(r.response_headers ?? "{}"),
+        response_body: r.response_body == null ? null : { text: r.response_body },
+        error: r.state === "error" ? (r.error ?? undefined) : undefined,
+        status: r.status ?? undefined,
+      });
+      n.response = resp;
+      update.run(JSON.stringify(n), resp?.usage ? JSON.stringify(resp.usage) : null, r.id);
+    }
+  }
+
+  private recomputeCosts() {
+    const rows = this.db
+      .query<{ id: number; model: string | null; usage: string | null; resp_model: string | null }, []>(
+        "SELECT id, model, usage, json_extract(normalized, '$.response.model') AS resp_model FROM requests",
+      )
+      .all();
+    const update = this.db.query("UPDATE requests SET cost = ? WHERE id = ?");
+    for (const r of rows) update.run(r.usage ? costOf(this.pricing, JSON.parse(r.usage), r.resp_model ?? r.model) : null, r.id);
+    this.db.exec(`UPDATE sessions SET
+      cost = coalesce((SELECT sum(cost) FROM requests r WHERE r.session_id = sessions.id), 0),
+      unpriced = (SELECT count(*) FROM requests r WHERE r.session_id = sessions.id AND r.usage IS NOT NULL AND r.cost IS NULL)`);
+  }
+
+  private rebuildTotals() {
+    const sum = (k: string) => `coalesce((SELECT sum(json_extract(r.usage, '$.${k}')) FROM requests r WHERE r.session_id = sessions.id), 0)`;
+    this.db.exec(`UPDATE sessions SET input_tokens = ${sum("input")}, output_tokens = ${sum("output")},
+      cache_read_tokens = ${sum("cacheRead")}, cache_write_tokens = ${sum("cacheWrite")}`);
+  }
+
+  private backfillClients() {
+    const rows = this.db
+      .query<{ id: number; headers: string | null }, []>(
+        `SELECT s.id, r.request_headers AS headers FROM sessions s JOIN requests r ON r.id = s.latest_request_id WHERE s.client IS NULL`,
+      )
+      .all();
+    const update = this.db.query("UPDATE sessions SET client = ? WHERE id = ?");
+    for (const r of rows) {
+      const client = detectClient(JSON.parse(r.headers ?? "{}"));
+      if (client) update.run(client, r.id);
+    }
   }
 
   /** Store an event from the addon. Returns the ids that changed. */
@@ -127,7 +233,8 @@ export class Store {
         n = normalizeRequest(ev);
         this.stitchPrevious(n);
         const hashes = messageHashes(n.messages);
-        sessionId = this.findOrCreateSession(n, hashes, ev.started_at);
+        const client = detectClient(ev.request_headers ?? {});
+        sessionId = this.findOrCreateSession(n, hashes, ev.started_at, client);
         requestId = Number(
           this.db
             .query(
@@ -153,33 +260,36 @@ export class Store {
         this.db
           .query(
             `UPDATE sessions SET request_count = request_count + 1, updated_at = max(updated_at, ?),
-               model = coalesce(?, model),
+               model = coalesce(?, model), client = coalesce(client, ?),
                latest_request_id = CASE WHEN ? >= latest_msg_count THEN ? ELSE latest_request_id END,
                latest_msg_count = max(latest_msg_count, ?)
              WHERE id = ?`,
           )
-          .run(ev.started_at, n.model ?? null, n.messages.length, requestId, n.messages.length, sessionId);
+          .run(ev.started_at, n.model ?? null, client, n.messages.length, requestId, n.messages.length, sessionId);
       }
 
       if (ev.state !== "pending") {
         const resp = normalizeResponse(n.provider, ev);
         n.response = resp;
         const u = resp?.usage;
+        const cost = u ? costOf(this.pricing, u, resp?.model ?? n.model) : null;
         this.db
           .query(
-            `UPDATE requests SET state = ?, status = ?, ended_at = ?, response_headers = ?, response_body = ?,
-               normalized = ?, response_id = ?, usage = ?, error = ?
+            `UPDATE requests SET state = ?, status = ?, ended_at = ?, response_started_at = ?, response_headers = ?, response_body = ?,
+               normalized = ?, response_id = ?, usage = ?, cost = ?, error = ?
              WHERE id = ?`,
           )
           .run(
             ev.state,
             ev.status ?? null,
             ev.ended_at ?? null,
+            ev.response_started_at ?? null,
             JSON.stringify(ev.response_headers ?? {}),
             bodyText(ev.response_body) ?? null,
             JSON.stringify(n),
             resp?.id ?? null,
             u ? JSON.stringify(u) : null,
+            cost,
             resp?.error ?? ev.error ?? null,
             requestId,
           );
@@ -188,6 +298,7 @@ export class Store {
             `UPDATE sessions SET updated_at = max(updated_at, ?),
                input_tokens = input_tokens + ?, output_tokens = output_tokens + ?,
                cache_read_tokens = cache_read_tokens + ?, cache_write_tokens = cache_write_tokens + ?,
+               cost = cost + ?, unpriced = unpriced + ?,
                last_error = CASE WHEN latest_request_id = ? THEN ? ELSE last_error END
              WHERE id = ?`,
           )
@@ -197,6 +308,8 @@ export class Store {
             u?.output ?? 0,
             u?.cacheRead ?? 0,
             u?.cacheWrite ?? 0,
+            cost ?? 0,
+            u && cost == null ? 1 : 0,
             requestId,
             resp?.error ?? ev.error ?? null,
             sessionId,
@@ -226,7 +339,7 @@ export class Store {
     if (!n.tools.length) n.tools = p.tools;
   }
 
-  private findOrCreateSession(n: Normalized, hashes: string[], ts: number): number {
+  private findOrCreateSession(n: Normalized, hashes: string[], ts: number, client: string | null): number {
     const fp = fingerprint(n);
     const sid = n.sessionId ?? null;
     const agent = n.agentId ?? null;
@@ -252,10 +365,10 @@ export class Store {
     return Number(
       this.db
         .query(
-          `INSERT INTO sessions (title, provider, model, session_id, agent_id, agent_name, fingerprint, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO sessions (title, provider, model, session_id, agent_id, agent_name, client, fingerprint, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(titleFor(n), n.provider, n.model ?? null, sid, agent, n.agentName ?? null, fp, ts, ts).lastInsertRowid,
+        .run(titleFor(n), n.provider, n.model ?? null, sid, agent, n.agentName ?? null, client, fp, ts, ts).lastInsertRowid,
     );
   }
 
@@ -273,7 +386,9 @@ export class Store {
       SELECT s.*,
         (SELECT count(*) FROM requests r WHERE r.session_id = s.id AND r.state = 'pending') AS pending,
         CASE WHEN g.root_id = s.id THEN NULL ELSE g.root_id END AS parent_id,
-        CASE WHEN g.root_id = s.id THEN (SELECT count(*) - 1 FROM sessions c WHERE c.session_id = s.session_id) ELSE 0 END AS child_count
+        CASE WHEN g.root_id = s.id THEN (SELECT count(*) - 1 FROM sessions c WHERE c.session_id = s.session_id) ELSE 0 END AS child_count,
+        CASE WHEN g.root_id = s.id THEN (SELECT sum(c.cost) FROM sessions c WHERE c.session_id = s.session_id) ELSE s.cost END AS group_cost,
+        (SELECT json_extract(r.normalized, '$.response.stopReason') FROM requests r WHERE r.id = s.latest_request_id) AS last_stop_reason
       FROM sessions s LEFT JOIN roots g ON g.session_id = s.session_id
       ${where}`;
   }
@@ -288,11 +403,16 @@ export class Store {
 
   listRequests(sessionId: number): RequestSummary[] {
     return this.db
-      .query<RequestSummary, [number]>(
-        `SELECT id, flow_id, session_id, state, provider, model, url, status, started_at, ended_at, msg_count, error, usage
+      .query<Record<string, any>, [number]>(
+        `SELECT id, flow_id, session_id, state, provider, coalesce(json_extract(normalized, '$.response.model'), model) AS model,
+           url, status, started_at, response_started_at, ended_at, msg_count, error, usage, cost,
+           json_extract(normalized, '$.response.stopReason') AS stop_reason,
+           (SELECT json_group_array(json_extract(b.value, '$.name')) FROM json_each(normalized, '$.response.blocks') b
+             WHERE json_extract(b.value, '$.type') = 'tool_use') AS tool_calls
          FROM requests WHERE session_id = ? ORDER BY id`,
       )
-      .all(sessionId);
+      .all(sessionId)
+      .map((r) => ({ ...r, usage: r.usage ? JSON.parse(r.usage) : null, tool_calls: JSON.parse(r.tool_calls ?? "[]") }) as RequestSummary);
   }
 
   getRequest(id: number): Record<string, any> | null {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "mitllmproxy": "./bin/mitllmproxy.ts"
+    "mitllmproxy": "./bin/mitllmproxy"
   },
   "files": [
     "bin",
@@ -14,8 +14,10 @@
   ],
   "scripts": {
     "start": "bun bin/mitllmproxy",
-    "dev": "bun --hot bin/mitllmproxy --dev",
+    "dev": "bun --hot bin/mitllmproxy --dev --port 4546 --db ./mitllmproxy-dev.db",
     "replay": "bun scripts/replay.ts",
+    "dev:replay": "MITLLMPROXY_URL=http://127.0.0.1:4546/ingest bun scripts/replay.ts",
+    "update-pricing": "bun scripts/update-pricing.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
@@ -23,6 +25,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {

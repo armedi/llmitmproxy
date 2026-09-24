@@ -1,63 +1,241 @@
-import { useContext, useMemo, useState } from "react";
-import type { Block, Message, RequestDetail, ToolDef } from "../api";
-import { clampMarkdown, Markdown, MarkdownMode } from "./Markdown";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type Block, contextTokens, fmtCost, fmtDuration, fmtTokens, type RequestDetail, type RequestSummary, type ToolDef } from "../api";
+import { useKeys } from "../hooks";
+import { buildItems, focusItems, type Item, itemText, type MessageItem } from "../transcript/items";
+import { type Turn, turnsByIndex } from "../transcript/stats";
+import { category } from "../transcript/tools";
+import { BoundaryCard, Blocks, ForceOpen, LazyDetails, Text, Thread, type ThreadInfo } from "./Blocks";
+import { Copy } from "./Copy";
 
-const CLAMP = 1600;
+export interface FindState {
+  query: string;
+  cursor: number;
+}
 
-export function Conversation({ detail }: { detail: RequestDetail }) {
+export interface FindResult {
+  count: number;
+  /** Positions of the matches, as fractions of the transcript height. */
+  marks: number[];
+}
+
+interface Props {
+  detail: RequestDetail;
+  requests: RequestSummary[];
+  /** The session's usual model; turns only show theirs when it differs. */
+  sessionModel: string | null;
+  focused: boolean;
+  find: FindState;
+  onFind: (r: FindResult) => void;
+  onOpenRequest: (id: number) => void;
+}
+
+export function Conversation({ detail, requests, sessionModel, focused, find, onFind, onOpenRequest }: Props) {
   const n = detail.normalized;
-  const toolNames = useMemo(() => {
-    const m = new Map<string, string>();
-    const visit = (blocks: Block[]) => blocks.forEach((b) => b.type === "tool_use" && b.id && m.set(b.id, b.name));
-    n.messages.forEach((msg) => visit(msg.content));
+  const pending = detail.state === "pending";
+  const { items: all, results } = useMemo(() => buildItems(n, pending), [n, pending]);
+  const items = useMemo(() => (focused ? focusItems(all) : all), [all, focused]);
+  const thread = useMemo<ThreadInfo>(() => {
+    const toolNames = new Map<string, string>();
+    const visit = (blocks: Block[]) => blocks.forEach((b) => b.type === "tool_use" && b.id && toolNames.set(b.id, b.name));
+    n.messages.forEach((m) => visit(m.content));
     if (n.response) visit(n.response.blocks);
-    return m;
-  }, [n]);
+    return { results, toolNames, pending };
+  }, [n, results, pending]);
+
+  // Which request produced each assistant message; the response is this request's own.
+  const turns = useMemo(() => {
+    const t = turnsByIndex(requests, detail.msg_count);
+    const own = requests.findIndex((r) => r.id === detail.id);
+    if (own >= 0) t.set(n.messages.length, { request: requests[own]!, ordinal: own + 1 });
+    return t;
+  }, [requests, detail.id, detail.msg_count, n.messages.length]);
+
+  // ---- find ----
+  const q = find.query.trim().toLowerCase();
+  const matches = useMemo(() => (q ? items.map((it, i) => (itemText(it, results).includes(q) ? i : -1)).filter((i) => i >= 0) : []), [items, results, q]);
+  const current = matches.length ? matches[((find.cursor % matches.length) + matches.length) % matches.length]! : -1;
+  const root = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const h = el.scrollHeight || 1;
+    const marks = matches.map((i) => (el.querySelector<HTMLElement>(`[data-item="${i}"]`)?.offsetTop ?? 0) / h);
+    onFind({ count: matches.length, marks });
+    if (current >= 0) el.querySelector(`[data-item="${current}"]`)?.scrollIntoView({ block: "center" });
+    highlight(el, q, current);
+  }, [matches, current, q]);
+  useEffect(() => () => highlight(null, "", -1), []);
+
+  // ---- j/k navigation ----
+  const [sel, setSel] = useState(-1);
+  const go = (i: number) => {
+    const next = Math.max(0, Math.min(items.length - 1, i));
+    setSel(next);
+    root.current?.querySelector(`[data-item="${next}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+  const isPrompt = (it: Item) => it.kind === "message" && it.role === "user";
+  const seek = (dir: 1 | -1) => {
+    for (let i = sel + dir; i >= 0 && i < items.length; i += dir) if (isPrompt(items[i]!)) return go(i);
+  };
+  useKeys({
+    j: () => go(sel + 1),
+    k: () => go(sel < 0 ? items.length - 1 : sel - 1),
+    J: () => seek(1),
+    K: () => seek(-1),
+  });
 
   const params = Object.entries(n.params ?? {}).filter(([, v]) => v !== undefined);
+  const view = { turns, sessionModel, onOpenRequest, detail };
 
   return (
-    <div className="conversation">
-      {n.system.length > 0 && (
-        <Section title="System prompt">
-          <SystemBlocks blocks={n.system} toolNames={toolNames} />
-        </Section>
-      )}
-      {n.tools.length > 0 && (
-        <Section title="Tools" count={String(n.tools.length)}>
-          <Tools tools={n.tools} />
-        </Section>
-      )}
-      {params.length > 0 && (
-        <Section title="Parameters" count={String(params.length)}>
-          <pre className="json">{JSON.stringify(Object.fromEntries(params), null, 2)}</pre>
-        </Section>
-      )}
+    <Thread.Provider value={thread}>
+      <div className="conversation" ref={root}>
+        {!focused && n.system.length > 0 && (
+          <Section title="System prompt" count={n.system.length > 1 ? `${n.system.length} blocks` : undefined}>
+            <SystemBlocks blocks={n.system} />
+          </Section>
+        )}
+        {!focused && n.tools.length > 0 && (
+          <Section title="Tools" count={String(n.tools.length)}>
+            <Tools tools={n.tools} />
+          </Section>
+        )}
+        {!focused && params.length > 0 && (
+          <Section title="Parameters" count={String(params.length)}>
+            <pre className="json">{JSON.stringify(Object.fromEntries(params), null, 2)}</pre>
+          </Section>
+        )}
 
-      {n.messages.map((m, i) => (
-        <MessageView key={i} index={i} message={m} toolNames={toolNames} />
-      ))}
-
-      {(detail.state === "pending" || n.response) && (
-        <div className="msg assistant">
-          <div className="role-label">
-            assistant <span className="muted">#{n.messages.length + 1}</span>
-            {detail.state === "pending" && (
-              <span className="muted">
-                {" "}
-                · <span className="spinner" /> responding…
-              </span>
-            )}
+        {items.map((it, i) => (
+          <div key={`${it.kind}-${it.index}`} data-item={i} className={`item ${i === sel ? "selected" : ""} ${i === current ? "find-current" : ""}`}>
+            <ForceOpen.Provider value={i === current}>
+              <ItemView item={it} {...view} />
+            </ForceOpen.Provider>
           </div>
-          {n.response?.error && <div className="error-banner">{n.response.error}</div>}
-          {n.response && n.response.blocks.length > 0 ? (
-            <Blocks blocks={n.response.blocks} toolNames={toolNames} prose />
-          ) : (
-            detail.state !== "pending" && !n.response?.error && <div className="muted">(empty response)</div>
-          )}
+        ))}
+        {!items.length && <div className="placeholder">No messages.</div>}
+      </div>
+    </Thread.Provider>
+  );
+}
+
+type ViewProps = Pick<Props, "sessionModel" | "onOpenRequest" | "detail"> & { turns: Map<number, Turn> };
+
+function ItemView({ item, ...v }: ViewProps & { item: Item }) {
+  switch (item.kind) {
+    case "boundary":
+      return (
+        <div className="boundaries">
+          {item.boundaries.map((b, i) => (
+            <BoundaryCard key={i} boundary={b} />
+          ))}
         </div>
+      );
+    case "tools":
+      return <ToolGroup item={item} {...v} />;
+    case "message":
+      return <MessageView item={item} {...v} />;
+  }
+}
+
+const ROLE_ICON: Record<string, string> = { user: "U", assistant: "A", tool: "T", system: "S" };
+
+function MessageView({ item, turns, sessionModel, onOpenRequest, detail }: ViewProps & { item: MessageItem }) {
+  const turn = item.role === "assistant" ? turns.get(item.index) : undefined;
+  const pending = item.response && detail.state === "pending";
+  const error = item.response ? detail.normalized.response?.error : undefined;
+  const text = () =>
+    item.blocks
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("\n\n");
+  return (
+    <div className={`msg ${item.role}`}>
+      <div className="msg-head">
+        <span className="role-icon">{ROLE_ICON[item.role] ?? "?"}</span>
+        <span className="role-label">{item.role}</span>
+        <span className="muted">#{item.index + 1}</span>
+        {pending && (
+          <span className="muted">
+            <span className="spinner" /> responding…
+          </span>
+        )}
+        <span className="spacer" />
+        {turn && <TurnMeta turn={turn} sessionModel={sessionModel} onOpenRequest={onOpenRequest} />}
+        <Copy text={text} className="hover-only" />
+      </div>
+      {error && <div className="error-banner">{error}</div>}
+      {item.blocks.length > 0 ? (
+        <Blocks blocks={item.blocks} prose live={item.response} />
+      ) : (
+        !pending && !error && <div className="muted">{item.response ? "(empty response)" : "(empty)"}</div>
       )}
     </div>
+  );
+}
+
+/** Consecutive tool-only assistant turns, collapsed into one block. */
+function ToolGroup({ item, ...v }: ViewProps & { item: Extract<Item, { kind: "tools" }> }) {
+  const counts = new Map<string, number>();
+  for (const m of item.items) if (m.kind === "message") for (const b of m.blocks) if (b.type === "tool_use") counts.set(b.name, (counts.get(b.name) ?? 0) + 1);
+  const first = item.items[0]!.index + 1;
+  const last = item.items[item.items.length - 1]!.index + 1;
+  return (
+    <details className="tool-group" open>
+      <summary>
+        <span className="tg-title">{item.calls} tool calls</span>
+        <span className="tg-names">
+          {[...counts].map(([name, c]) => (
+            <span key={name} className={`tg-name cat-${category(name)}`}>
+              {name}
+              {c > 1 && <span className="muted"> ×{c}</span>}
+            </span>
+          ))}
+        </span>
+        <span className="spacer" />
+        <span className="muted">
+          #{first}–{last}
+        </span>
+      </summary>
+      {item.items.map((m) =>
+        m.kind === "boundary" ? (
+          m.boundaries.map((b, i) => <BoundaryCard key={`${m.index}-${i}`} boundary={b} />)
+        ) : (
+          <div key={m.index} className="tg-step">
+            <div className="tg-step-head">
+              <span className="muted">#{m.index + 1}</span>
+              <span className="spacer" />
+              {v.turns.get(m.index) && <TurnMeta turn={v.turns.get(m.index)!} sessionModel={v.sessionModel} onOpenRequest={v.onOpenRequest} />}
+            </div>
+            <Blocks blocks={m.blocks} prose />
+          </div>
+        ),
+      )}
+    </details>
+  );
+}
+
+/** Duration, tokens and cost of the request that produced a message, linking to it. */
+function TurnMeta({ turn: { request: r, ordinal }, sessionModel, onOpenRequest }: { turn: Turn; sessionModel: string | null; onOpenRequest: (id: number) => void }) {
+  const u = r.usage;
+  const bad = r.state === "error" || (r.status ?? 0) >= 400;
+  return (
+    <span className="turn-meta">
+      {r.model && r.model !== sessionModel && <span className="chip model">{r.model}</span>}
+      {bad && <span className="chip bad">{r.status ?? "error"}</span>}
+      {r.state !== "pending" && <span title="Request duration">{fmtDuration(r.started_at, r.ended_at)}</span>}
+      {u && (
+        <span title={`context ${contextTokens(u).toLocaleString()} (input ${u.input ?? 0}, cache read ${u.cacheRead ?? 0}, cache write ${u.cacheWrite ?? 0}) · output ${u.output ?? 0}`}>
+          {fmtTokens(contextTokens(u))} ctx / {fmtTokens(u.output)} out
+        </span>
+      )}
+      {r.cost != null && <span title="Estimated cost">{fmtCost(r.cost)}</span>}
+      {r.stop_reason && r.stop_reason !== "end_turn" && r.stop_reason !== "tool_use" && <span className="chip">{r.stop_reason}</span>}
+      <button className="link" title="Open this request" onClick={() => onOpenRequest(r.id)}>
+        req {ordinal}
+      </button>
+    </span>
   );
 }
 
@@ -70,13 +248,13 @@ function Section({ title, count, children }: { title: string; count?: string; ch
 }
 
 // The system prompt is often several blocks (e.g. Anthropic's `system` array); keep them visibly separate.
-function SystemBlocks({ blocks, toolNames }: { blocks: Block[]; toolNames: Map<string, string> }) {
-  if (blocks.length === 1) return <Blocks blocks={blocks} toolNames={toolNames} prose />;
+function SystemBlocks({ blocks }: { blocks: Block[] }) {
+  if (blocks.length === 1) return <Blocks blocks={blocks} prose />;
   return (
     <>
       {blocks.map((b, i) => (
         <div key={i} className="sys-block">
-          <BlockView block={b} toolNames={toolNames} prose />
+          <Blocks blocks={[b]} prose />
         </div>
       ))}
     </>
@@ -89,7 +267,7 @@ function Tools({ tools }: { tools: ToolDef[] }) {
       {tools.map((t, i) => (
         <details key={i} className="tool-def">
           <summary>
-            <code>{t.name}</code>
+            <code className={`tool-name cat-${category(t.name)}`}>{t.name}</code>
             {t.description && <span className="muted"> — {t.description.split("\n")[0]!.slice(0, 140)}</span>}
           </summary>
           {t.description && <Text text={t.description} />}
@@ -100,159 +278,29 @@ function Tools({ tools }: { tools: ToolDef[] }) {
   );
 }
 
-function MessageView({ message, index, toolNames }: { message: Message; index: number; toolNames: Map<string, string> }) {
-  const onlyResults = message.content.length > 0 && message.content.every((b) => b.type === "tool_result");
-  const role = onlyResults ? "tool" : message.role;
-  return (
-    <div className={`msg ${role}`}>
-      <div className="role-label">
-        {role} <span className="muted">#{index + 1}</span>
-      </div>
-      <Blocks blocks={message.content} toolNames={toolNames} prose />
-    </div>
-  );
-}
-
-/** `prose`: text blocks are conversation text (markdown-able) rather than tool output. */
-function Blocks({ blocks, toolNames, prose = false }: { blocks: Block[]; toolNames: Map<string, string>; prose?: boolean }) {
-  return (
-    <>
-      {blocks.map((b, i) => (
-        <BlockView key={i} block={b} toolNames={toolNames} prose={prose} />
-      ))}
-    </>
-  );
-}
-
-function BlockView({ block: b, toolNames, prose }: { block: Block; toolNames: Map<string, string>; prose: boolean }) {
-  switch (b.type) {
-    case "text":
-      return <Text text={b.text} markdown={prose} />;
-    case "thinking":
-      return (
-        <LazyDetails
-          className="thinking"
-          summary={b.redacted || !b.text ? "Thinking (not returned by the API)" : "Thinking"}
-        >
-          {b.text && <Text text={b.text} markdown />}
-        </LazyDetails>
-      );
-    case "tool_use":
-      return (
-        <LazyDetails
-          className="tool-card call"
-          id={b.id ? `tool-${b.id}` : undefined}
-          summary={
-            <span className="tool-head">
-              <span className="tool-icon">→</span> <code>{b.name}</code>
-              <span className="tool-preview">{inputPreview(b.input)}</span>
-            </span>
-          }
-        >
-          {b.id && <div className="muted mono tool-id">{b.id}</div>}
-          <ToolInput input={b.input} />
-        </LazyDetails>
-      );
-    case "tool_result": {
-      const name = b.name ?? (b.toolUseId ? toolNames.get(b.toolUseId) : undefined);
-      return (
-        <LazyDetails
-          className={`tool-card result ${b.isError ? "is-error" : ""}`}
-          summary={
-            <span className="tool-head">
-              <span className="tool-icon">←</span> {name ? <code>{name}</code> : "result"}
-              {b.isError && <span className="chip bad">error</span>}
-              <span className="tool-preview">{firstLine(b.content.map((c) => (c.type === "text" ? c.text : "")).join("\n"))}</span>
-            </span>
-          }
-        >
-          {b.toolUseId && (
-            <a
-              className="muted mono tool-id"
-              href={`#tool-${b.toolUseId}`}
-              onClick={() => document.getElementById(`tool-${b.toolUseId}`)?.setAttribute("open", "")}
-            >
-              {b.toolUseId}
-            </a>
-          )}
-          <Blocks blocks={b.content} toolNames={toolNames} />
-        </LazyDetails>
-      );
+/** Highlight find matches with the CSS Custom Highlight API (no DOM changes, so React stays in charge). */
+function highlight(root: HTMLElement | null, q: string, current: number) {
+  const reg = (globalThis as any).CSS?.highlights as Map<string, unknown> | undefined;
+  const H = (globalThis as any).Highlight as (new (...r: Range[]) => unknown) | undefined;
+  if (!reg || !H) return;
+  reg.delete("find");
+  reg.delete("find-current");
+  if (!root || !q) return;
+  const all: Range[] = [];
+  const cur: Range[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.nodeValue?.toLowerCase();
+    if (!text) continue;
+    const inCurrent = !!(node.parentElement?.closest(`[data-item="${current}"]`));
+    for (let i = text.indexOf(q); i >= 0; i = text.indexOf(q, i + q.length)) {
+      const r = new Range();
+      r.setStart(node, i);
+      r.setEnd(node, i + q.length);
+      (inCurrent ? cur : all).push(r);
+      if (all.length + cur.length > 5000) break;
     }
-    case "image":
-      return b.source?.startsWith("data:") || b.source?.startsWith("http") ? (
-        <img className="img" src={b.source} alt={b.mediaType ?? "image"} />
-      ) : (
-        <div className="muted">[image {b.mediaType ?? ""} {b.source ?? ""}]</div>
-      );
-    case "raw":
-      return (
-        <details className="raw-block" open={JSON.stringify(b.data).length < 400}>
-          <summary>{b.label ?? "data"}</summary>
-          <pre className="json">{typeof b.data === "string" ? b.data : JSON.stringify(b.data, null, 2)}</pre>
-        </details>
-      );
   }
-}
-
-const firstLine = (text: string) => text.trim().split("\n")[0]!.slice(0, 200);
-
-/** One-line hint for a collapsed tool call: its description, or else its first string argument. */
-function inputPreview(input: unknown): string {
-  if (typeof input === "string") return firstLine(input);
-  if (!input || typeof input !== "object") return "";
-  const o = input as Record<string, unknown>;
-  const s = typeof o.description === "string" ? o.description : Object.values(o).find((v): v is string => typeof v === "string");
-  return s ? firstLine(s) : "";
-}
-
-function ToolInput({ input }: { input: unknown }) {
-  if (input && typeof input === "object" && !Array.isArray(input)) {
-    const entries = Object.entries(input);
-    // Show short scalar args inline and long strings (commands, file contents) as text.
-    return (
-      <div className="tool-args">
-        {entries.map(([k, v]) => (
-          <div key={k} className="arg">
-            <span className="arg-key">{k}</span>
-            {typeof v === "string" ? <Text text={v} /> : <pre className="json">{JSON.stringify(v, null, 2)}</pre>}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return <pre className="json">{typeof input === "string" ? input : JSON.stringify(input, null, 2)}</pre>;
-}
-
-/** A <details> whose body is only rendered once it has been opened. */
-function LazyDetails({ className, id, summary, children }: { className: string; id?: string; summary: React.ReactNode; children: React.ReactNode }) {
-  const [seen, setSeen] = useState(false);
-  return (
-    <details className={className} id={id} onToggle={(e) => e.currentTarget.open && setSeen(true)}>
-      <summary>{summary}</summary>
-      {seen && children}
-    </details>
-  );
-}
-
-function Text({ text, markdown = false }: { text: string; markdown?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const enabled = useContext(MarkdownMode);
-  const long = text.length > CLAMP;
-  const md = markdown && enabled;
-  const shown = useMemo(() => (!long || open ? text : md ? clampMarkdown(text, CLAMP) : text.slice(0, CLAMP) + "…"), [text, long, open, md]);
-  return (
-    <div className="text">
-      {md ? (
-        <Markdown text={shown} />
-      ) : (
-        <pre>{shown}</pre>
-      )}
-      {long && (
-        <button className="link" onClick={() => setOpen(!open)}>
-          {open ? "Show less" : `Show all (${text.length.toLocaleString()} chars)`}
-        </button>
-      )}
-    </div>
-  );
+  reg.set("find", new H(...all));
+  reg.set("find-current", new H(...cur));
 }

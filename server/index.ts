@@ -38,6 +38,7 @@ export async function startServer(opts: StartOptions = {}) {
     routes: {
       "/": index,
       "/session/:id": index,
+      "/session/:id/request/:rid": index,
 
       "/ingest": {
         POST: async (req) => {
@@ -69,6 +70,7 @@ export async function startServer(opts: StartOptions = {}) {
           return json({ ok: true, ids });
         },
       },
+      "/api/sessions/:id/requests": (req) => json(store.listRequests(idParam(req))),
       "/api/sessions/:id/export": (req) => {
         const session = store.getSession(idParam(req));
         if (!session) return json({ error: "not found" }, 404);

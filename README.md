@@ -2,7 +2,7 @@
 
 A live viewer for the LLM calls your agents make, captured through mitmproxy.
 
-Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Older requests are still available from the "Request N of N" picker.
+Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Older requests are still available from the "Request N of N" picker and the vitals panel's request list.
 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Both streaming (SSE) and non-streaming responses are supported.
 
@@ -90,6 +90,60 @@ HTTPS_PROXY=http://127.0.0.1:8080 SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.p
 To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch requests go from pending to done.
 
 
+## The viewer
+
+- **Sidebar:** each session shows a status dot, its client (Claude Code, Codex, Gemini CLI, …, detected from the user agent), model, request count, context tokens, estimated cost and last activity. The dot means:
+  - pulsing green: working (a request is in flight or a tool is running)
+  - tan: answered, waiting for you
+  - amber: stopped after a tool call with nothing following
+  - red: the last request failed
+
+  Subagents and side calls expand under their main session. Group by client, model or API, and filter by API, client, errors or activity in the last 24 hours. Filters are kept in the URL. Drag the edge to resize.
+- **Transcript:**
+  - Each tool call shows a one-line summary (`$ bun test`, `src/app.ts (+12 −3)`, `3/5 done → next step`) with its result underneath.
+  - Edit, MultiEdit, Write and `apply_patch` inputs are shown as diffs, with an **Args** toggle for the raw arguments.
+  - Runs of tool-only turns collapse into one "N tool calls" block, and calls made together are bracketed as parallel.
+  - Injected context (`<system-reminder>`, slash-command echoes, hook output) becomes a small collapsible card.
+  - Each assistant message shows the request that produced it: duration, context and output tokens, cost, the model when it differs from the session's, and a link to that request.
+  - **Focused** shows only your prompts and the final answers.
+  - The System prompt, Tools, Parameters and the **Raw** tab (headers, bodies, the normalized model) are all still there.
+- **Vitals** (right panel):
+  - Wall-clock time, requests and errors.
+  - Tokens split into input, cache read and cache write, the cache hit rate, and peak and current context with a per-request sparkline.
+  - Estimated cost, including subagents and broken down by model.
+  - Latency: p50, p90, time to response headers, and the slowest request.
+  - Tool call counts.
+  - Every request, with duration bars. Click one to open it.
+- **Themes:** light, dark, or follow the system (button in the sidebar header).
+
+### Keyboard shortcuts
+
+| Keys | Action |
+|---|---|
+| `j` / `k` | Next / previous message |
+| `J` / `K` | Next / previous user prompt |
+| `]` / `[` | Next / previous session |
+| `⌘F` / `Ctrl+F` | Find in the session, including collapsed tool input and output (Enter / Shift+Enter to step) |
+| `t` | Conversation / Raw |
+| `f` | Focused mode |
+| `m` | Markdown / plain text |
+| `v` | Vitals panel |
+| `b` | Sidebar |
+| `Esc` | Close find, or go back to the latest request |
+| `?` | All shortcuts |
+
+### Cost estimates
+
+Costs are estimates from list prices. They are computed from each response's token usage and the model it reports.
+
+- **Prices:** the snapshot in `config/pricing.json`, generated from [LiteLLM's price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json) with `bun run update-pricing`.
+- **Long prompts:** for models whose price rises above a prompt size (e.g. 200k tokens), the higher rate is used.
+- **Unknown models:** they are counted as "unpriced" instead of guessed.
+- **Your own prices:** put a `pricing.json` next to the database (`~/.mitllmproxy/pricing.json`) in the same format, for example `{"models": {"my-model": {"input": 1, "output": 4, "cacheRead": 0.1}}}`. Prices are dollars per million tokens.
+- **Updating:** stored costs are recomputed whenever the prices change.
+
+Token counts are normalized so `input` never includes cached tokens. OpenAI and Gemini report cached tokens inside the prompt count; mitllmproxy subtracts them. Gemini's thinking tokens are counted as output, as they are billed.
+
 ## Export
 
 **Export** in the session header downloads a JSON file with the raw request and response, including headers and bodies:
@@ -148,17 +202,18 @@ To support a new gateway such as LiteLLM, OpenRouter or an internal proxy, add i
 4. **OpenAI Responses `previous_response_id`:** these requests are linked to the request that produced that response, and its history is stitched in. The latest view still shows the whole conversation.
 5. Anything else starts a new session. Compaction, rewinds, subagents and one-off calls (such as title generation) each get their own session.
 
-In a group, the longest non-subagent conversation is the main session and the only one listed in the sidebar. Its subagents, side calls and other threads (such as the one started after `/clear`) are linked from its header, and each links back. Deleting the main session deletes the whole group. Use **Hide one-off calls** to hide single-request sessions.
+In a group, the longest non-subagent conversation is the main session and the only one listed in the sidebar. Its subagents, side calls and other threads (such as the one started after `/clear`) expand under it in the sidebar and are linked from its header, and each links back. Deleting the main session deletes the whole group. Use **Hide one-off calls** to hide single-request sessions.
 
 `Authorization`, `x-api-key`, `x-goog-api-key` and cookies are redacted in the addon before anything leaves mitmproxy.
 
 ## Development
 
 ```sh
-bun test          # parser + session-grouping tests
+bun test          # parser, session-grouping, pricing and transcript tests
 bun run typecheck
 bun run dev       # server with hot reload on the dev port
 bun run dev:replay
+bun run update-pricing   # refresh config/pricing.json from LiteLLM
 ```
 
 The dev server runs alongside `bun start` without touching it:
@@ -168,12 +223,12 @@ The dev server runs alongside `bun start` without touching it:
 | UI       | :4545            | :4546                |
 | Database | `~/.mitllmproxy/mitllmproxy.db` | `mitllmproxy-dev.db` |
 
-Both are just `bin/mitllmproxy.ts` with different flags — see `package.json`'s `start`/`dev` scripts.
+Both are just `bin/mitllmproxy` with different flags. See the `start` and `dev` scripts in `package.json`.
 
 To send real traffic to the dev build, run a second mitmproxy on another port with the addon pointed at the dev server:
 
 ```sh
-MITLLMPROXY_DB="$PWD/mitllmproxy-dev.db" mitmdump -p 9080 -s "$(bun bin/mitllmproxy.ts addon-path)"
+MITLLMPROXY_DB="$PWD/mitllmproxy-dev.db" mitmdump -p 9080 -s "$(bun bin/mitllmproxy addon-path)"
 ```
 
 Layout:
@@ -183,5 +238,7 @@ Layout:
 - `server/parsers/`: one normalizer per API, all producing a common block model.
 - `server/providers/`: one module per provider or router, reading the session id its clients declare.
 - `server/sessions.ts`: the grouping logic.
-- `server/store.ts`: SQLite storage.
-- `web/`: the React UI, bundled by Bun's HTML imports.
+- `server/store.ts`: SQLite storage, with migrations that re-parse old captures and recompute costs.
+- `server/pricing.ts`, `config/pricing.json`: cost estimates.
+- `server/clients.ts`: detects the agent app from its headers.
+- `web/`: the React UI, bundled by Bun's HTML imports. `web/transcript/` holds the pure display logic: pairing tool results, grouping, tool summaries, diffs and stats.

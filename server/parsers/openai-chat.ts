@@ -48,12 +48,15 @@ function assistantBlocks(m: any): Block[] {
   return blocks;
 }
 
+/** OpenAI counts cached tokens inside the prompt; `Usage.input` is the uncached part. */
 export function usage(u: any): Usage | undefined {
   if (!u) return undefined;
+  const prompt = u.prompt_tokens ?? u.input_tokens;
+  const cached = u.prompt_tokens_details?.cached_tokens ?? u.input_tokens_details?.cached_tokens;
   return {
-    input: u.prompt_tokens ?? u.input_tokens,
+    input: prompt != null && cached ? Math.max(0, prompt - cached) : prompt,
     output: u.completion_tokens ?? u.output_tokens,
-    cacheRead: u.prompt_tokens_details?.cached_tokens ?? u.input_tokens_details?.cached_tokens,
+    cacheRead: cached,
     reasoning: u.completion_tokens_details?.reasoning_tokens ?? u.output_tokens_details?.reasoning_tokens,
     total: u.total_tokens,
   };

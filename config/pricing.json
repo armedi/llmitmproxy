@@ -1,0 +1,3724 @@
+{
+ "source": "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json",
+ "updated": "2026-09-24",
+ "models": {
+  "aion-2.0": {
+   "input": 0.8,
+   "output": 1.6,
+   "cacheRead": 0.2
+  },
+  "aion-3.0": {
+   "input": 3,
+   "output": 6,
+   "cacheRead": 0.75
+  },
+  "aion-3.0-mini": {
+   "input": 0.7,
+   "output": 1.4,
+   "cacheRead": 0.18
+  },
+  "aion-3.5": {
+   "input": 3,
+   "output": 6,
+   "cacheRead": 0.75
+  },
+  "aion-3.5-mini": {
+   "input": 0.7,
+   "output": 1.4,
+   "cacheRead": 0.18
+  },
+  "aion-rp-llama-3.1-8b": {
+   "input": 0.8,
+   "output": 1.6
+  },
+  "auto": {
+   "input": 0,
+   "output": 0
+  },
+  "bodybuilder": {
+   "input": 0,
+   "output": 0
+  },
+  "chat-latest": {
+   "input": 5,
+   "output": 30,
+   "cacheRead": 0.5
+  },
+  "claude-3-haiku": {
+   "input": 0.25,
+   "output": 1.25,
+   "cacheRead": 0.03,
+   "cacheWrite": 0.3
+  },
+  "claude-3.5-sonnet": {
+   "input": 3,
+   "output": 15
+  },
+  "claude-3.7-sonnet": {
+   "input": 3,
+   "output": 15
+  },
+  "claude-fable-5": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 1,
+   "cacheWrite": 12.5
+  },
+  "claude-fable-5-1": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 0.25,
+   "cacheWrite": 12.5
+  },
+  "claude-fable-5.1": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 0.25,
+   "cacheWrite": 12.5
+  },
+  "claude-fable-latest": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 0.25,
+   "cacheWrite": 12.5
+  },
+  "claude-haiku-4-5": {
+   "input": 1,
+   "output": 5,
+   "cacheRead": 0.1,
+   "cacheWrite": 1.25
+  },
+  "claude-haiku-4-5-20251001": {
+   "input": 1,
+   "output": 5,
+   "cacheRead": 0.1,
+   "cacheWrite": 1.25
+  },
+  "claude-haiku-4.5": {
+   "input": 1,
+   "output": 5,
+   "cacheRead": 0.1,
+   "cacheWrite": 1.25
+  },
+  "claude-haiku-latest": {
+   "input": 1,
+   "output": 5,
+   "cacheRead": 0.1,
+   "cacheWrite": 1.25
+  },
+  "claude-mythos-5": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 1,
+   "cacheWrite": 12.5
+  },
+  "claude-mythos-5-1": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 0.25,
+   "cacheWrite": 12.5
+  },
+  "claude-mythos-preview": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 1,
+   "cacheWrite": 12.5
+  },
+  "claude-opus-4-5": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4-5-20251101": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4-6": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4-6-20260205": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4-7": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4-7-20260416": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4-8": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4.1": {
+   "input": 15,
+   "output": 75,
+   "cacheRead": 1.5,
+   "cacheWrite": 18.75
+  },
+  "claude-opus-4.5": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4.6": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4.7": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-4.8": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-5": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5,
+   "cacheWrite": 6.25
+  },
+  "claude-opus-5-5": {
+   "input": 4,
+   "output": 20,
+   "cacheRead": 0.2,
+   "cacheWrite": 5
+  },
+  "claude-opus-5.5": {
+   "input": 4,
+   "output": 20,
+   "cacheRead": 0.2,
+   "cacheWrite": 5
+  },
+  "claude-opus-latest": {
+   "input": 4,
+   "output": 20,
+   "cacheRead": 0.2,
+   "cacheWrite": 5
+  },
+  "claude-sonnet-4": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3,
+   "cacheWrite": 3.75,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 6,
+     "output": 22.5,
+     "cacheRead": 0.6,
+     "cacheWrite": 7.5
+    }
+   ]
+  },
+  "claude-sonnet-4-5": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3,
+   "cacheWrite": 3.75,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 6,
+     "output": 22.5,
+     "cacheRead": 0.6,
+     "cacheWrite": 7.5
+    }
+   ]
+  },
+  "claude-sonnet-4-5-20250929": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3,
+   "cacheWrite": 3.75,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 6,
+     "output": 22.5,
+     "cacheRead": 0.6,
+     "cacheWrite": 7.5
+    }
+   ]
+  },
+  "claude-sonnet-4-6": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3,
+   "cacheWrite": 3.75
+  },
+  "claude-sonnet-4.5": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3,
+   "cacheWrite": 3.75,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 6,
+     "output": 22.5,
+     "cacheRead": 0.6,
+     "cacheWrite": 7.5
+    }
+   ]
+  },
+  "claude-sonnet-4.6": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3,
+   "cacheWrite": 3.75,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 6,
+     "output": 22.5,
+     "cacheRead": 0.6,
+     "cacheWrite": 7.5
+    }
+   ]
+  },
+  "claude-sonnet-5": {
+   "input": 2,
+   "output": 10,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5
+  },
+  "claude-sonnet-latest": {
+   "input": 2,
+   "output": 10,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5
+  },
+  "codestral-2508": {
+   "input": 0.3,
+   "output": 0.9,
+   "cacheRead": 0.03
+  },
+  "codestral-latest": {
+   "input": 0.3,
+   "output": 0.9,
+   "cacheRead": 0.03
+  },
+  "codestral-mamba-latest": {
+   "input": 0.25,
+   "output": 0.25,
+   "cacheRead": 0.025
+  },
+  "command-a": {
+   "input": 2.5,
+   "output": 10
+  },
+  "command-a-plus": {
+   "input": 0.3,
+   "output": 1.5,
+   "cacheRead": 0.15
+  },
+  "command-r-08-2024": {
+   "input": 0.15,
+   "output": 0.6
+  },
+  "command-r-plus-08-2024": {
+   "input": 2.5,
+   "output": 10
+  },
+  "command-r7b-12-2024": {
+   "input": 0.0375,
+   "output": 0.15
+  },
+  "computer-use-preview": {
+   "input": 3,
+   "output": 12
+  },
+  "cydonia-24b-v4.1": {
+   "input": 0.3,
+   "output": 0.5,
+   "cacheRead": 0.15
+  },
+  "daybreak-blue-latest": {
+   "input": 4,
+   "output": 20,
+   "cacheRead": 0.4,
+   "cacheWrite": 5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 8,
+     "output": 30,
+     "cacheRead": 0.8,
+     "cacheWrite": 10
+    }
+   ]
+  },
+  "daybreak-red-latest": {
+   "input": 12.5,
+   "output": 75,
+   "cacheRead": 1.25,
+   "cacheWrite": 15.625,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 25,
+     "output": 112.5,
+     "cacheRead": 2.5,
+     "cacheWrite": 31.25
+    }
+   ]
+  },
+  "deep-research-max-preview-04-2026": {
+   "input": 2,
+   "output": 12
+  },
+  "deep-research-preview-04-2026": {
+   "input": 2,
+   "output": 12
+  },
+  "deepseek-chat": {
+   "input": 0.28,
+   "output": 0.42,
+   "cacheRead": 0.028
+  },
+  "deepseek-chat-v3-0324": {
+   "input": 0.25,
+   "output": 1
+  },
+  "deepseek-chat-v3.1": {
+   "input": 0.25,
+   "output": 0.95,
+   "cacheRead": 0.13
+  },
+  "deepseek-coder": {
+   "input": 0.14,
+   "output": 0.28,
+   "cacheRead": 0.014
+  },
+  "deepseek-flash": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.006,
+   "cacheWrite": 0
+  },
+  "deepseek-flash-latest": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.006
+  },
+  "deepseek-pro-latest": {
+   "input": 1.32,
+   "output": 3.96,
+   "cacheRead": 0.044
+  },
+  "deepseek-r1": {
+   "input": 0.55,
+   "output": 2.19,
+   "cacheRead": 0.14
+  },
+  "deepseek-r1-0528": {
+   "input": 0.5,
+   "output": 2.15,
+   "cacheRead": 0.35
+  },
+  "deepseek-r1-distill-llama-70b": {
+   "input": 0.8,
+   "output": 0.8
+  },
+  "deepseek-reasoner": {
+   "input": 0.28,
+   "output": 0.42,
+   "cacheRead": 0.028
+  },
+  "deepseek-v3": {
+   "input": 0.27,
+   "output": 1.1,
+   "cacheRead": 0.07,
+   "cacheWrite": 0
+  },
+  "deepseek-v3.1-terminus": {
+   "input": 0.27,
+   "output": 1,
+   "cacheRead": 0.135
+  },
+  "deepseek-v3.2": {
+   "input": 0.28,
+   "output": 0.4,
+   "cacheRead": 0.028
+  },
+  "deepseek-v3.2-exp": {
+   "input": 0.27,
+   "output": 0.41,
+   "cacheRead": 0.02
+  },
+  "deepseek-v4-flash": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.006,
+   "cacheWrite": 0
+  },
+  "deepseek-v4-flash-0731": {
+   "input": 0.2,
+   "output": 0.4,
+   "cacheRead": 0.04
+  },
+  "deepseek-v4-flash-latest": {
+   "input": 0.04,
+   "output": 0.64,
+   "cacheRead": 0.016
+  },
+  "deepseek-v4-flash-vision-exp": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.006,
+   "cacheWrite": 0
+  },
+  "deepseek-v4-pro": {
+   "input": 1.32,
+   "output": 3.96,
+   "cacheRead": 0.044,
+   "cacheWrite": 0
+  },
+  "deepseek-v4-pro-0813": {
+   "input": 0.462,
+   "output": 1.386,
+   "cacheRead": 0.0154
+  },
+  "deepseek-v4.1-flash": {
+   "input": 0.14,
+   "output": 0.42,
+   "cacheRead": 0.0042
+  },
+  "devstral-2512": {
+   "input": 0.4,
+   "output": 2,
+   "cacheRead": 0.04
+  },
+  "devstral-latest": {
+   "input": 0.4,
+   "output": 2,
+   "cacheRead": 0.04
+  },
+  "devstral-medium-latest": {
+   "input": 0.4,
+   "output": 2,
+   "cacheRead": 0.04
+  },
+  "devstral-small-latest": {
+   "input": 0.1,
+   "output": 0.3,
+   "cacheRead": 0.01
+  },
+  "dolphin-mistral-24b-venice-edition": {
+   "input": 0.2,
+   "output": 0.9
+  },
+  "ember-1": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3
+  },
+  "ernie-4.5-vl-424b-a47b": {
+   "input": 0.42,
+   "output": 1.25
+  },
+  "free": {
+   "input": 0,
+   "output": 0
+  },
+  "fugu-max": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.25
+  },
+  "fugu-ultra": {
+   "input": 5,
+   "output": 30,
+   "cacheRead": 0.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 10,
+     "output": 45,
+     "cacheRead": 1
+    }
+   ]
+  },
+  "fugu-ultra-v2": {
+   "input": 5,
+   "output": 30,
+   "cacheRead": 0.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 10,
+     "output": 45,
+     "cacheRead": 1
+    }
+   ]
+  },
+  "gemini-2.5-computer-use-preview-10-2025": {
+   "input": 1.25,
+   "output": 10,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 15
+    }
+   ]
+  },
+  "gemini-2.5-flash": {
+   "input": 0.3,
+   "output": 2.5,
+   "cacheRead": 0.03
+  },
+  "gemini-2.5-flash-image": {
+   "input": 0.3,
+   "output": 2.5,
+   "cacheRead": 0.03,
+   "cacheWrite": 0.083333
+  },
+  "gemini-2.5-flash-lite": {
+   "input": 0.1,
+   "output": 0.4,
+   "cacheRead": 0.01
+  },
+  "gemini-2.5-flash-lite-preview-09-2025": {
+   "input": 0.1,
+   "output": 0.4,
+   "cacheRead": 0.01
+  },
+  "gemini-2.5-flash-preview-09-2025": {
+   "input": 0.3,
+   "output": 2.5,
+   "cacheRead": 0.03
+  },
+  "gemini-2.5-pro": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 15,
+     "cacheRead": 0.25
+    }
+   ]
+  },
+  "gemini-2.5-pro-preview": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125,
+   "cacheWrite": 0.375,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 15,
+     "cacheRead": 0.25
+    }
+   ]
+  },
+  "gemini-2.5-pro-preview-05-06": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125,
+   "cacheWrite": 0.375,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 15,
+     "cacheRead": 0.25
+    }
+   ]
+  },
+  "gemini-2.5-pro-preview-tts": {
+   "input": 1,
+   "output": 20,
+   "cacheRead": 0.125
+  },
+  "gemini-3-flash-preview": {
+   "input": 0.5,
+   "output": 3,
+   "cacheRead": 0.05
+  },
+  "gemini-3-pro-image": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "cacheWrite": 0.375
+  },
+  "gemini-3-pro-image-preview": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "cacheWrite": 0.375
+  },
+  "gemini-3-pro-preview": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 18,
+     "cacheRead": 0.4,
+     "cacheWrite": 0.25
+    }
+   ]
+  },
+  "gemini-3.1-flash-image": {
+   "input": 0.5,
+   "output": 3
+  },
+  "gemini-3.1-flash-image-preview": {
+   "input": 0.5,
+   "output": 3
+  },
+  "gemini-3.1-flash-lite": {
+   "input": 0.25,
+   "output": 1.5,
+   "cacheRead": 0.025
+  },
+  "gemini-3.1-flash-lite-image": {
+   "input": 0.25,
+   "output": 1.5
+  },
+  "gemini-3.1-flash-lite-preview": {
+   "input": 0.25,
+   "output": 1.5,
+   "cacheRead": 0.025
+  },
+  "gemini-3.1-pro-preview": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 18,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "gemini-3.1-pro-preview-customtools": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 18,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "gemini-3.5-flash": {
+   "input": 1.5,
+   "output": 9,
+   "cacheRead": 0.15
+  },
+  "gemini-3.5-flash-lite": {
+   "input": 0.3,
+   "output": 2.5,
+   "cacheRead": 0.03
+  },
+  "gemini-3.6-flash": {
+   "input": 0.75,
+   "output": 3.75,
+   "cacheRead": 0.075
+  },
+  "gemini-3.7-flash": {
+   "input": 0.75,
+   "output": 3.75,
+   "cacheRead": 0.075
+  },
+  "gemini-3.8-flash": {
+   "input": 0.75,
+   "output": 3.75,
+   "cacheRead": 0.075
+  },
+  "gemini-3.8-flash-cyber": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "gemini-exp-1114": {
+   "input": 0,
+   "output": 0,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0,
+     "output": 0
+    }
+   ]
+  },
+  "gemini-exp-1206": {
+   "input": 0,
+   "output": 0,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0,
+     "output": 0
+    }
+   ]
+  },
+  "gemini-flash-latest": {
+   "input": 0.75,
+   "output": 3.75,
+   "cacheRead": 0.075
+  },
+  "gemini-flash-lite-latest": {
+   "input": 0.3,
+   "output": 2.5,
+   "cacheRead": 0.03
+  },
+  "gemini-gemma-2-27b-it": {
+   "input": 0.35,
+   "output": 1.05
+  },
+  "gemini-gemma-2-9b-it": {
+   "input": 0.35,
+   "output": 1.05
+  },
+  "gemini-omni-1.1-flash": {
+   "input": 1.5,
+   "output": 9
+  },
+  "gemini-omni-flash-preview": {
+   "input": 1.5,
+   "output": 9
+  },
+  "gemini-pro-latest": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 18,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "gemini-robotics-er-1.5-preview": {
+   "input": 0.3,
+   "output": 2.5,
+   "cacheRead": 0
+  },
+  "gemini-robotics-er-2-preview": {
+   "input": 1,
+   "output": 5,
+   "cacheRead": 0.1
+  },
+  "gemini-robotics-er-2-streaming-preview": {
+   "input": 1,
+   "output": 5
+  },
+  "gemma-2-27b-it": {
+   "input": 0.65,
+   "output": 0.65
+  },
+  "gemma-3-12b-it": {
+   "input": 0.05,
+   "output": 0.15
+  },
+  "gemma-3-27b-it": {
+   "input": 0,
+   "output": 0,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0,
+     "output": 0
+    }
+   ]
+  },
+  "gemma-3-4b-it": {
+   "input": 0.05,
+   "output": 0.1
+  },
+  "gemma-4-26b-a4b-it": {
+   "input": 0,
+   "output": 0
+  },
+  "gemma-4-31b-it": {
+   "input": 0,
+   "output": 0
+  },
+  "glm-4-32b-0414-128k": {
+   "input": 0.1,
+   "output": 0.1
+  },
+  "glm-4.5": {
+   "input": 0.6,
+   "output": 2.2
+  },
+  "glm-4.5-air": {
+   "input": 0.2,
+   "output": 1.1
+  },
+  "glm-4.5-airx": {
+   "input": 1.1,
+   "output": 4.5
+  },
+  "glm-4.5-flash": {
+   "input": 0,
+   "output": 0
+  },
+  "glm-4.5-x": {
+   "input": 2.2,
+   "output": 8.9
+  },
+  "glm-4.5v": {
+   "input": 0.6,
+   "output": 1.8
+  },
+  "glm-4.6": {
+   "input": 0.6,
+   "output": 2.2,
+   "cacheRead": 0.11,
+   "cacheWrite": 0
+  },
+  "glm-4.6v": {
+   "input": 0.3,
+   "output": 0.9,
+   "cacheRead": 0.055
+  },
+  "glm-4.7": {
+   "input": 0.6,
+   "output": 2.2,
+   "cacheRead": 0.11,
+   "cacheWrite": 0
+  },
+  "glm-4.7-flash": {
+   "input": 0,
+   "output": 0,
+   "cacheRead": 0,
+   "cacheWrite": 0
+  },
+  "glm-5": {
+   "input": 1,
+   "output": 3.2,
+   "cacheRead": 0.2,
+   "cacheWrite": 0
+  },
+  "glm-5-2": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.14
+  },
+  "glm-5-code": {
+   "input": 1.2,
+   "output": 5,
+   "cacheRead": 0.3,
+   "cacheWrite": 0
+  },
+  "glm-5-turbo": {
+   "input": 1.2,
+   "output": 4,
+   "cacheRead": 0.24
+  },
+  "glm-5.1": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.26
+  },
+  "glm-5.2": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.28
+  },
+  "glm-5.3": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.26,
+   "cacheWrite": 0
+  },
+  "glm-5.3-flash": {
+   "input": 0.15,
+   "output": 0.5,
+   "cacheRead": 0.03,
+   "cacheWrite": 0
+  },
+  "glm-5.3-flashx": {
+   "input": 0.37,
+   "output": 1.25,
+   "cacheRead": 0.09
+  },
+  "glm-5.3-prime": {
+   "input": 2.8,
+   "output": 8.8,
+   "cacheRead": 0.56
+  },
+  "glm-5v-turbo": {
+   "input": 1.2,
+   "output": 4,
+   "cacheRead": 0.24
+  },
+  "glm-flash-latest": {
+   "input": 0.15,
+   "output": 0.5,
+   "cacheRead": 0.05
+  },
+  "glm-latest": {
+   "input": 0.6538,
+   "output": 2.0548,
+   "cacheRead": 0.12142
+  },
+  "gpt-3.5-turbo": {
+   "input": 0.5,
+   "output": 1.5
+  },
+  "gpt-3.5-turbo-0125": {
+   "input": 0.5,
+   "output": 1.5
+  },
+  "gpt-3.5-turbo-0613": {
+   "input": 1,
+   "output": 2
+  },
+  "gpt-3.5-turbo-1106": {
+   "input": 1,
+   "output": 2
+  },
+  "gpt-3.5-turbo-16k": {
+   "input": 3,
+   "output": 4
+  },
+  "gpt-3.5-turbo-instruct": {
+   "input": 1.5,
+   "output": 2
+  },
+  "gpt-4": {
+   "input": 30,
+   "output": 60
+  },
+  "gpt-4-0613": {
+   "input": 30,
+   "output": 60
+  },
+  "gpt-4-1106-preview": {
+   "input": 10,
+   "output": 30
+  },
+  "gpt-4-turbo": {
+   "input": 10,
+   "output": 30
+  },
+  "gpt-4-turbo-2024-04-09": {
+   "input": 10,
+   "output": 30
+  },
+  "gpt-4-turbo-preview": {
+   "input": 10,
+   "output": 30
+  },
+  "gpt-4.1": {
+   "input": 2,
+   "output": 8,
+   "cacheRead": 0.5
+  },
+  "gpt-4.1-2025-04-14": {
+   "input": 2,
+   "output": 8,
+   "cacheRead": 0.5
+  },
+  "gpt-4.1-mini": {
+   "input": 0.4,
+   "output": 1.6,
+   "cacheRead": 0.1
+  },
+  "gpt-4.1-mini-2025-04-14": {
+   "input": 0.4,
+   "output": 1.6,
+   "cacheRead": 0.1
+  },
+  "gpt-4.1-nano": {
+   "input": 0.1,
+   "output": 0.4,
+   "cacheRead": 0.025
+  },
+  "gpt-4.1-nano-2025-04-14": {
+   "input": 0.1,
+   "output": 0.4,
+   "cacheRead": 0.025
+  },
+  "gpt-4o": {
+   "input": 2.5,
+   "output": 10,
+   "cacheRead": 1.25
+  },
+  "gpt-4o-2024-05-13": {
+   "input": 5,
+   "output": 15
+  },
+  "gpt-4o-2024-08-06": {
+   "input": 2.5,
+   "output": 10,
+   "cacheRead": 1.25
+  },
+  "gpt-4o-2024-11-20": {
+   "input": 2.5,
+   "output": 10,
+   "cacheRead": 1.25
+  },
+  "gpt-4o-audio-preview-2024-12-17": {
+   "input": 2.5,
+   "output": 10
+  },
+  "gpt-4o-audio-preview-2025-06-03": {
+   "input": 2.5,
+   "output": 10
+  },
+  "gpt-4o-mini": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.075
+  },
+  "gpt-4o-mini-2024-07-18": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.075
+  },
+  "gpt-4o-mini-audio-preview-2024-12-17": {
+   "input": 0.15,
+   "output": 0.6
+  },
+  "gpt-4o-mini-search-preview": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.075
+  },
+  "gpt-4o-search-preview": {
+   "input": 2.5,
+   "output": 10,
+   "cacheRead": 1.25
+  },
+  "gpt-5": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5-2025-08-07": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5-chat": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5-chat-latest": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5-codex": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5-image": {
+   "input": 10,
+   "output": 10,
+   "cacheRead": 1.25
+  },
+  "gpt-5-image-mini": {
+   "input": 2.5,
+   "output": 2,
+   "cacheRead": 0.25
+  },
+  "gpt-5-mini": {
+   "input": 0.25,
+   "output": 2,
+   "cacheRead": 0.025
+  },
+  "gpt-5-mini-2025-08-07": {
+   "input": 0.25,
+   "output": 2,
+   "cacheRead": 0.025
+  },
+  "gpt-5-nano": {
+   "input": 0.05,
+   "output": 0.4,
+   "cacheRead": 0.005
+  },
+  "gpt-5-nano-2025-08-07": {
+   "input": 0.05,
+   "output": 0.4,
+   "cacheRead": 0.005
+  },
+  "gpt-5-pro": {
+   "input": 15,
+   "output": 120
+  },
+  "gpt-5-pro-2025-10-06": {
+   "input": 15,
+   "output": 120
+  },
+  "gpt-5-search-api": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5-search-api-2025-10-14": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5.1": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5.1-2025-11-13": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5.1-chat-latest": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5.1-codex": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5.1-codex-max": {
+   "input": 1.25,
+   "output": 10,
+   "cacheRead": 0.125
+  },
+  "gpt-5.1-codex-mini": {
+   "input": 0.25,
+   "output": 2,
+   "cacheRead": 0.025
+  },
+  "gpt-5.2": {
+   "input": 1.75,
+   "output": 14,
+   "cacheRead": 0.175
+  },
+  "gpt-5.2-2025-12-11": {
+   "input": 1.75,
+   "output": 14,
+   "cacheRead": 0.175
+  },
+  "gpt-5.2-chat": {
+   "input": 1.75,
+   "output": 14,
+   "cacheRead": 0.175
+  },
+  "gpt-5.2-chat-latest": {
+   "input": 1.75,
+   "output": 14,
+   "cacheRead": 0.175
+  },
+  "gpt-5.2-codex": {
+   "input": 1.75,
+   "output": 14,
+   "cacheRead": 0.175
+  },
+  "gpt-5.2-pro": {
+   "input": 21,
+   "output": 168
+  },
+  "gpt-5.2-pro-2025-12-11": {
+   "input": 21,
+   "output": 168
+  },
+  "gpt-5.3-chat-latest": {
+   "input": 1.75,
+   "output": 14,
+   "cacheRead": 0.175
+  },
+  "gpt-5.3-codex": {
+   "input": 1.75,
+   "output": 14,
+   "cacheRead": 0.175
+  },
+  "gpt-5.4": {
+   "input": 2.5,
+   "output": 15,
+   "cacheRead": 0.25,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 5,
+     "output": 22.5,
+     "cacheRead": 0.5
+    }
+   ]
+  },
+  "gpt-5.4-2026-03-05": {
+   "input": 2.5,
+   "output": 15,
+   "cacheRead": 0.25,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 5,
+     "output": 22.5,
+     "cacheRead": 0.5
+    }
+   ]
+  },
+  "gpt-5.4-image-2": {
+   "input": 8,
+   "output": 15,
+   "cacheRead": 2
+  },
+  "gpt-5.4-mini": {
+   "input": 0.75,
+   "output": 4.5,
+   "cacheRead": 0.075
+  },
+  "gpt-5.4-mini-2026-03-17": {
+   "input": 0.75,
+   "output": 4.5,
+   "cacheRead": 0.075
+  },
+  "gpt-5.4-nano": {
+   "input": 0.2,
+   "output": 1.25,
+   "cacheRead": 0.02
+  },
+  "gpt-5.4-nano-2026-03-17": {
+   "input": 0.2,
+   "output": 1.25,
+   "cacheRead": 0.02
+  },
+  "gpt-5.4-pro": {
+   "input": 30,
+   "output": 180,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 60,
+     "output": 270
+    }
+   ]
+  },
+  "gpt-5.4-pro-2026-03-05": {
+   "input": 30,
+   "output": 180,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 60,
+     "output": 270
+    }
+   ]
+  },
+  "gpt-5.5": {
+   "input": 5,
+   "output": 30,
+   "cacheRead": 0.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 10,
+     "output": 45,
+     "cacheRead": 1
+    }
+   ]
+  },
+  "gpt-5.5-2026-04-23": {
+   "input": 5,
+   "output": 30,
+   "cacheRead": 0.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 10,
+     "output": 45,
+     "cacheRead": 1
+    }
+   ]
+  },
+  "gpt-5.5-cyber": {
+   "input": 12.5,
+   "output": 75,
+   "cacheRead": 1.25
+  },
+  "gpt-5.5-pro": {
+   "input": 30,
+   "output": 180,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 60,
+     "output": 270
+    }
+   ]
+  },
+  "gpt-5.5-pro-2026-04-23": {
+   "input": 30,
+   "output": 180,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 60,
+     "output": 270
+    }
+   ]
+  },
+  "gpt-5.6": {
+   "input": 4,
+   "output": 20,
+   "cacheRead": 0.4,
+   "cacheWrite": 5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 8,
+     "output": 30,
+     "cacheRead": 0.8,
+     "cacheWrite": 10
+    }
+   ]
+  },
+  "gpt-5.6-cyber": {
+   "input": 12.5,
+   "output": 75,
+   "cacheRead": 1.25,
+   "cacheWrite": 15.625,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 25,
+     "output": 112.5,
+     "cacheRead": 2.5,
+     "cacheWrite": 31.25
+    }
+   ]
+  },
+  "gpt-5.6-luna": {
+   "input": 0.2,
+   "output": 1.2,
+   "cacheRead": 0.02,
+   "cacheWrite": 0.25,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 0.4,
+     "output": 1.8,
+     "cacheRead": 0.04,
+     "cacheWrite": 0.5
+    }
+   ]
+  },
+  "gpt-5.6-luna-pro": {
+   "input": 0.2,
+   "output": 1.2,
+   "cacheRead": 0.02,
+   "cacheWrite": 0.25,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 0.4,
+     "output": 1.8,
+     "cacheRead": 0.04,
+     "cacheWrite": 0.5
+    }
+   ]
+  },
+  "gpt-5.6-sol": {
+   "input": 4,
+   "output": 20,
+   "cacheRead": 0.4,
+   "cacheWrite": 5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 8,
+     "output": 30,
+     "cacheRead": 0.8,
+     "cacheWrite": 10
+    }
+   ]
+  },
+  "gpt-5.6-sol-pro": {
+   "input": 2,
+   "output": 10,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 4,
+     "output": 15,
+     "cacheRead": 0.4,
+     "cacheWrite": 5
+    }
+   ]
+  },
+  "gpt-5.6-terra": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 4,
+     "output": 18,
+     "cacheRead": 0.4,
+     "cacheWrite": 5
+    }
+   ]
+  },
+  "gpt-5.6-terra-pro": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 4,
+     "output": 18,
+     "cacheRead": 0.4,
+     "cacheWrite": 5
+    }
+   ]
+  },
+  "gpt-6-astra": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 1,
+   "cacheWrite": 12.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 20,
+     "output": 75,
+     "cacheRead": 2,
+     "cacheWrite": 25
+    }
+   ]
+  },
+  "gpt-6-astra-pro": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 1,
+   "cacheWrite": 12.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 20,
+     "output": 75,
+     "cacheRead": 2,
+     "cacheWrite": 25
+    }
+   ]
+  },
+  "gpt-6-luna": {
+   "input": 0.1,
+   "output": 0.5,
+   "cacheRead": 0.01,
+   "cacheWrite": 0.125,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 0.2,
+     "output": 0.75,
+     "cacheRead": 0.02,
+     "cacheWrite": 0.25
+    }
+   ]
+  },
+  "gpt-6-luna-pro": {
+   "input": 0.1,
+   "output": 0.5,
+   "cacheRead": 0.01,
+   "cacheWrite": 0.125,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 0.2,
+     "output": 0.75,
+     "cacheRead": 0.02,
+     "cacheWrite": 0.25
+    }
+   ]
+  },
+  "gpt-6-sol": {
+   "input": 2,
+   "output": 10,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 4,
+     "output": 15,
+     "cacheRead": 0.4,
+     "cacheWrite": 5
+    }
+   ]
+  },
+  "gpt-6-sol-pro": {
+   "input": 2,
+   "output": 10,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 4,
+     "output": 15,
+     "cacheRead": 0.4,
+     "cacheWrite": 5
+    }
+   ]
+  },
+  "gpt-astra-latest": {
+   "input": 10,
+   "output": 50,
+   "cacheRead": 1,
+   "cacheWrite": 12.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 20,
+     "output": 75,
+     "cacheRead": 2,
+     "cacheWrite": 25
+    }
+   ]
+  },
+  "gpt-audio": {
+   "input": 2.5,
+   "output": 10
+  },
+  "gpt-audio-1.5": {
+   "input": 2.5,
+   "output": 10
+  },
+  "gpt-audio-2025-08-28": {
+   "input": 2.5,
+   "output": 10
+  },
+  "gpt-audio-mini": {
+   "input": 0.6,
+   "output": 2.4
+  },
+  "gpt-audio-mini-2025-12-15": {
+   "input": 0.6,
+   "output": 2.4
+  },
+  "gpt-chat-latest": {
+   "input": 5,
+   "output": 30,
+   "cacheRead": 0.5
+  },
+  "gpt-daybreak-blue-latest": {
+   "input": 4,
+   "output": 20,
+   "cacheRead": 0.4,
+   "cacheWrite": 5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 8,
+     "output": 30,
+     "cacheRead": 0.8,
+     "cacheWrite": 10
+    }
+   ]
+  },
+  "gpt-daybreak-red-latest": {
+   "input": 12.5,
+   "output": 75,
+   "cacheRead": 1.25,
+   "cacheWrite": 15.625,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 25,
+     "output": 112.5,
+     "cacheRead": 2.5,
+     "cacheWrite": 31.25
+    }
+   ]
+  },
+  "gpt-luna-latest": {
+   "input": 0.1,
+   "output": 0.5,
+   "cacheRead": 0.01,
+   "cacheWrite": 0.125,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 0.2,
+     "output": 0.75,
+     "cacheRead": 0.02,
+     "cacheWrite": 0.25
+    }
+   ]
+  },
+  "gpt-mini-latest": {
+   "input": 0.75,
+   "output": 4.5,
+   "cacheRead": 0.075
+  },
+  "gpt-oss-120b": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.075
+  },
+  "gpt-oss-20b": {
+   "input": 0.018,
+   "output": 0.09,
+   "cacheRead": 0.03
+  },
+  "gpt-oss-safeguard-20b": {
+   "input": 0.075,
+   "output": 0.3,
+   "cacheRead": 0.0375
+  },
+  "gpt-rosalind-research": {
+   "input": 5,
+   "output": 25,
+   "cacheRead": 0.5
+  },
+  "gpt-sol-latest": {
+   "input": 2,
+   "output": 10,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 4,
+     "output": 15,
+     "cacheRead": 0.4,
+     "cacheWrite": 5
+    }
+   ]
+  },
+  "gpt-terra-latest": {
+   "input": 2,
+   "output": 12,
+   "cacheRead": 0.2,
+   "cacheWrite": 2.5,
+   "tiers": [
+    {
+     "above": 272000,
+     "input": 4,
+     "output": 18,
+     "cacheRead": 0.4,
+     "cacheWrite": 5
+    }
+   ]
+  },
+  "granite-4.0-h-micro": {
+   "input": 0.017,
+   "output": 0.112
+  },
+  "granite-4.2-8b": {
+   "input": 0.06,
+   "output": 0.25,
+   "cacheRead": 0.015
+  },
+  "grok-4": {
+   "input": 3,
+   "output": 15
+  },
+  "grok-4.20": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-0309": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-0309-non-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-0309-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-0309": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-0309-non-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-0309-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-latest-non-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-latest-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-non-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-beta-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-experimental-beta-0304": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-experimental-beta-0304-non-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-experimental-beta-0304-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-experimental-beta-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-experimental-beta-non-reasoning-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-experimental-beta-reasoning-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-multi-agent": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-multi-agent-0309": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-multi-agent-beta-0309": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-multi-agent-beta-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-multi-agent-experimental-beta-0304": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-multi-agent-experimental-beta-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-multi-agent-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-non-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-non-reasoning-gv2": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-non-reasoning-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-reasoning": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-reasoning-gv2": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.20-reasoning-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.3": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.3-latest": {
+   "input": 1.25,
+   "output": 2.5,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2.5,
+     "output": 5,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-4.5": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.3,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 12,
+     "cacheRead": 0.6
+    }
+   ]
+  },
+  "grok-4.5-latest": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.3,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 12,
+     "cacheRead": 0.6
+    }
+   ]
+  },
+  "grok-4.6": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.5,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 12,
+     "cacheRead": 1
+    }
+   ]
+  },
+  "grok-4.7": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.5,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 12,
+     "cacheRead": 1
+    }
+   ]
+  },
+  "grok-build-0.1": {
+   "input": 1,
+   "output": 2,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2,
+     "output": 4,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-build-latest": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.3,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 4,
+     "output": 12,
+     "cacheRead": 0.6
+    }
+   ]
+  },
+  "grok-code-fast": {
+   "input": 1,
+   "output": 2,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2,
+     "output": 4,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-code-fast-1": {
+   "input": 1,
+   "output": 2,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2,
+     "output": 4,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-code-fast-1-0825": {
+   "input": 1,
+   "output": 2,
+   "cacheRead": 0.2,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 2,
+     "output": 4,
+     "cacheRead": 0.4
+    }
+   ]
+  },
+  "grok-latest": {
+   "input": 1.6,
+   "output": 4.8,
+   "cacheRead": 0.4,
+   "tiers": [
+    {
+     "above": 200000,
+     "input": 3.2,
+     "output": 9.6,
+     "cacheRead": 0.8
+    }
+   ]
+  },
+  "hermes-3-llama-3.1-405b": {
+   "input": 1,
+   "output": 1
+  },
+  "hermes-3-llama-3.1-70b": {
+   "input": 0.7,
+   "output": 0.7
+  },
+  "hermes-4-405b": {
+   "input": 1,
+   "output": 3
+  },
+  "hunyuan-a13b-instruct": {
+   "input": 0.14,
+   "output": 0.57
+  },
+  "hy-mt2-1.8b": {
+   "input": 0.044,
+   "output": 0.177
+  },
+  "hy-mt2-30b-a3b": {
+   "input": 0.074,
+   "output": 0.295
+  },
+  "hy-mt2-7b": {
+   "input": 0.074,
+   "output": 0.295
+  },
+  "hy3": {
+   "input": 0.132,
+   "output": 0.528,
+   "cacheRead": 0.033
+  },
+  "hy3-preview": {
+   "input": 0.18,
+   "output": 0.6,
+   "cacheRead": 0.06
+  },
+  "hy4-preview": {
+   "input": 0.834,
+   "output": 2.501,
+   "cacheRead": 0.042
+  },
+  "inkling": {
+   "input": 1,
+   "output": 4.05,
+   "cacheRead": 0.17
+  },
+  "inkling-small": {
+   "input": 0.45,
+   "output": 1.2,
+   "cacheRead": 0.1
+  },
+  "kat-coder-pro-v2.5": {
+   "input": 0.74,
+   "output": 2.96,
+   "cacheRead": 0.15
+  },
+  "kimi-k2": {
+   "input": 0.57,
+   "output": 2.3
+  },
+  "kimi-k2-0905": {
+   "input": 0.6,
+   "output": 2.5
+  },
+  "kimi-k2-thinking": {
+   "input": 0.6,
+   "output": 2.5,
+   "cacheRead": 0.15
+  },
+  "kimi-k2.5": {
+   "input": 0.6,
+   "output": 3,
+   "cacheRead": 0.1
+  },
+  "kimi-k2.6": {
+   "input": 0.95,
+   "output": 4,
+   "cacheRead": 0.16
+  },
+  "kimi-k2.7-code": {
+   "input": 0.95,
+   "output": 4,
+   "cacheRead": 0.19
+  },
+  "kimi-k3": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3
+  },
+  "kimi-latest": {
+   "input": 3,
+   "output": 15,
+   "cacheRead": 0.3
+  },
+  "l3-lunaris-8b": {
+   "input": 0.04,
+   "output": 0.05
+  },
+  "l3.1-euryale-70b": {
+   "input": 0.85,
+   "output": 0.85
+  },
+  "l3.3-euryale-70b": {
+   "input": 0.65,
+   "output": 0.75
+  },
+  "labs-leanstral-1-5": {
+   "input": 0,
+   "output": 0
+  },
+  "labs-leanstral-1-5-1": {
+   "input": 0,
+   "output": 0
+  },
+  "laguna-s-2.1": {
+   "input": 0.09,
+   "output": 0.18,
+   "cacheRead": 0.009
+  },
+  "laguna-xs-2.1": {
+   "input": 0.06,
+   "output": 0.12,
+   "cacheRead": 0.03
+  },
+  "learnlm-1.5-pro-experimental": {
+   "input": 0,
+   "output": 0,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0,
+     "output": 0
+    }
+   ]
+  },
+  "ling-3.0-flash": {
+   "input": 0.021,
+   "output": 0.063,
+   "cacheRead": 0.0042
+  },
+  "ling-3.0-flash-fin": {
+   "input": 0.06,
+   "output": 0.18,
+   "cacheRead": 0.012
+  },
+  "ling-3.0-flash-vl": {
+   "input": 0.06,
+   "output": 0.18,
+   "cacheRead": 0.012
+  },
+  "llama-3-70b-instruct": {
+   "input": 0.59,
+   "output": 0.79
+  },
+  "llama-3.1-70b-instruct": {
+   "input": 0.4,
+   "output": 0.4
+  },
+  "llama-3.1-8b-instruct": {
+   "input": 0.05,
+   "output": 0.08,
+   "cacheRead": 0.025
+  },
+  "llama-3.2-1b-instruct": {
+   "input": 0.027,
+   "output": 0.201
+  },
+  "llama-3.2-3b-instruct": {
+   "input": 0.05,
+   "output": 0.33
+  },
+  "llama-3.3-70b-instruct": {
+   "input": 0.1,
+   "output": 0.32
+  },
+  "llama-4-maverick": {
+   "input": 0.1875,
+   "output": 0.6525
+  },
+  "llama-4-scout": {
+   "input": 0.1,
+   "output": 0.3
+  },
+  "llama-guard-4-12b": {
+   "input": 0.18,
+   "output": 0.18
+  },
+  "longcat-2.0": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.006
+  },
+  "lyria-3-clip-preview": {
+   "input": 0,
+   "output": 0
+  },
+  "lyria-3-pro-preview": {
+   "input": 0,
+   "output": 0
+  },
+  "lyria-3.5": {
+   "input": 0,
+   "output": 0
+  },
+  "lyria-3.5-clip-preview": {
+   "input": 0,
+   "output": 0
+  },
+  "lyria-3.5-pro-preview": {
+   "input": 0,
+   "output": 0
+  },
+  "lyria-realtime-exp": {
+   "input": 0,
+   "output": 0
+  },
+  "magistral-medium-latest": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "magistral-small-latest": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.015
+  },
+  "magnum-v4-72b": {
+   "input": 2.5,
+   "output": 5
+  },
+  "mercury-2": {
+   "input": 0.25,
+   "output": 0.75,
+   "cacheRead": 0.025
+  },
+  "mercury-2.5": {
+   "input": 0.04,
+   "output": 0.15,
+   "cacheRead": 0.004
+  },
+  "mimo-v2-flash": {
+   "input": 0.1,
+   "output": 0.3,
+   "cacheRead": 0.01,
+   "cacheWrite": 0
+  },
+  "mimo-v2.5": {
+   "input": 0.14,
+   "output": 0.28,
+   "cacheRead": 0.0028,
+   "cacheWrite": 0
+  },
+  "mimo-v2.5-pro": {
+   "input": 0.435,
+   "output": 0.87,
+   "cacheRead": 0.0036,
+   "cacheWrite": 0
+  },
+  "mimo-v2.6-flash": {
+   "input": 0.14,
+   "output": 0.28,
+   "cacheRead": 0.0028
+  },
+  "mimo-v2.6-pro": {
+   "input": 0.435,
+   "output": 0.87,
+   "cacheRead": 0.0036
+  },
+  "mimo-v2.6-pro-ultraspeed": {
+   "input": 4.35,
+   "output": 8.7,
+   "cacheRead": 0.036
+  },
+  "minimax-01": {
+   "input": 0.2,
+   "output": 1.1
+  },
+  "minimax-m1": {
+   "input": 0.4,
+   "output": 2.2
+  },
+  "minimax-m2": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.03,
+   "cacheWrite": 0.375
+  },
+  "minimax-m2-her": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.03
+  },
+  "minimax-m2.1": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.03,
+   "cacheWrite": 0.375
+  },
+  "minimax-m2.1-lightning": {
+   "input": 0.3,
+   "output": 2.4,
+   "cacheRead": 0.03,
+   "cacheWrite": 0.375
+  },
+  "minimax-m2.5": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.03,
+   "cacheWrite": 0.375
+  },
+  "minimax-m2.5-lightning": {
+   "input": 0.3,
+   "output": 2.4,
+   "cacheRead": 0.03,
+   "cacheWrite": 0.375
+  },
+  "minimax-m2.7": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.06
+  },
+  "minimax-m3": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.06,
+   "tiers": [
+    {
+     "above": 512000,
+     "input": 0.6,
+     "output": 2.4,
+     "cacheRead": 0.12
+    }
+   ]
+  },
+  "ministral-14b-2512": {
+   "input": 0.2,
+   "output": 0.2,
+   "cacheRead": 0.02
+  },
+  "ministral-14b-latest": {
+   "input": 0.2,
+   "output": 0.2,
+   "cacheRead": 0.02
+  },
+  "ministral-3-14b-2512": {
+   "input": 0.2,
+   "output": 0.2,
+   "cacheRead": 0.02
+  },
+  "ministral-3-3b-2512": {
+   "input": 0.1,
+   "output": 0.1,
+   "cacheRead": 0.01
+  },
+  "ministral-3-8b-2512": {
+   "input": 0.15,
+   "output": 0.15,
+   "cacheRead": 0.015
+  },
+  "ministral-3b-2512": {
+   "input": 0.1,
+   "output": 0.1,
+   "cacheRead": 0.01
+  },
+  "ministral-3b-latest": {
+   "input": 0.1,
+   "output": 0.1,
+   "cacheRead": 0.01
+  },
+  "ministral-8b-2512": {
+   "input": 0.15,
+   "output": 0.15,
+   "cacheRead": 0.015
+  },
+  "ministral-8b-latest": {
+   "input": 0.15,
+   "output": 0.15,
+   "cacheRead": 0.015
+  },
+  "mistral-7b-instruct": {
+   "input": 0.13,
+   "output": 0.13
+  },
+  "mistral-code-agent-latest": {
+   "input": 0.4,
+   "output": 2,
+   "cacheRead": 0.04
+  },
+  "mistral-code-fim-latest": {
+   "input": 0.3,
+   "output": 0.9,
+   "cacheRead": 0.03
+  },
+  "mistral-code-latest": {
+   "input": 0.3,
+   "output": 0.9,
+   "cacheRead": 0.03
+  },
+  "mistral-large": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.2
+  },
+  "mistral-large-2407": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.2
+  },
+  "mistral-large-2512": {
+   "input": 0.5,
+   "output": 1.5,
+   "cacheRead": 0.05
+  },
+  "mistral-large-3": {
+   "input": 0.5,
+   "output": 1.5,
+   "cacheRead": 0.05
+  },
+  "mistral-large-latest": {
+   "input": 0.5,
+   "output": 1.5,
+   "cacheRead": 0.05
+  },
+  "mistral-medium": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mistral-medium-2604": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mistral-medium-3": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mistral-medium-3-5": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mistral-medium-3.1": {
+   "input": 0.4,
+   "output": 2,
+   "cacheRead": 0.04
+  },
+  "mistral-medium-3.5": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mistral-medium-latest": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mistral-nemo": {
+   "input": 0.019,
+   "output": 0.03
+  },
+  "mistral-saba": {
+   "input": 0.2,
+   "output": 0.6,
+   "cacheRead": 0.02
+  },
+  "mistral-small": {
+   "input": 0.1,
+   "output": 0.3,
+   "cacheRead": 0.01
+  },
+  "mistral-small-24b-instruct-2501": {
+   "input": 0.05,
+   "output": 0.08
+  },
+  "mistral-small-2603": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.015
+  },
+  "mistral-small-3.1-24b-instruct": {
+   "input": 0.351,
+   "output": 0.555
+  },
+  "mistral-small-3.2-24b-instruct": {
+   "input": 0.09375,
+   "output": 0.25
+  },
+  "mistral-small-latest": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.015
+  },
+  "mistral-tiny": {
+   "input": 0.25,
+   "output": 0.25,
+   "cacheRead": 0.025
+  },
+  "mistral-vibe-cli-fast": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.015
+  },
+  "mistral-vibe-cli-latest": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mistral-vibe-cli-with-tools": {
+   "input": 1.5,
+   "output": 7.5,
+   "cacheRead": 0.15
+  },
+  "mixtral-8x22b-instruct": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.2
+  },
+  "moonshot-v1-128k": {
+   "input": 2,
+   "output": 5
+  },
+  "moonshot-v1-128k-vision-preview": {
+   "input": 2,
+   "output": 5
+  },
+  "moonshot-v1-32k": {
+   "input": 1,
+   "output": 3
+  },
+  "moonshot-v1-32k-vision-preview": {
+   "input": 1,
+   "output": 3
+  },
+  "moonshot-v1-8k": {
+   "input": 0.2,
+   "output": 2
+  },
+  "moonshot-v1-8k-vision-preview": {
+   "input": 0.2,
+   "output": 2
+  },
+  "moonshot-v1-auto": {
+   "input": 2,
+   "output": 5
+  },
+  "morph-v3-fast": {
+   "input": 0.8,
+   "output": 1.2
+  },
+  "morph-v3-large": {
+   "input": 0.9,
+   "output": 1.9
+  },
+  "muse-glimmer-30b": {
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.04
+  },
+  "muse-spark-1.1": {
+   "input": 1.25,
+   "output": 4.25,
+   "cacheRead": 0.15
+  },
+  "muse-spark-1.2": {
+   "input": 1.25,
+   "output": 4.25,
+   "cacheRead": 0.15
+  },
+  "muse-spark-1.2-contributor": {
+   "input": 0.1,
+   "output": 0.2,
+   "cacheRead": 0.002
+  },
+  "muse-spark-1.3": {
+   "input": 1.25,
+   "output": 4.25,
+   "cacheRead": 0.15
+  },
+  "muse-spark-1.3-contributor": {
+   "input": 0.1,
+   "output": 0.2,
+   "cacheRead": 0.002
+  },
+  "mythomax-l2-13b": {
+   "input": 0.08,
+   "output": 0.11
+  },
+  "nemotron-3-nano-30b-a3b": {
+   "input": 0.05,
+   "output": 0.2,
+   "cacheRead": 0.03
+  },
+  "nemotron-3-super-120b-a12b": {
+   "input": 0.08,
+   "output": 0.45
+  },
+  "nemotron-3-ultra-550b-a55b": {
+   "input": 0.6,
+   "output": 2.4,
+   "cacheRead": 0.12
+  },
+  "nemotron-3.5-content-safety": {
+   "input": 0.2,
+   "output": 0.2
+  },
+  "nemotron-3.5-lightning": {
+   "input": 0.08,
+   "output": 0.2,
+   "cacheRead": 0.04
+  },
+  "nex-n2.5-mini": {
+   "input": 0.025,
+   "output": 0.1,
+   "cacheRead": 0.0025
+  },
+  "nex-n2.5-pro": {
+   "input": 0.075,
+   "output": 0.25,
+   "cacheRead": 0.015
+  },
+  "nova-2-lite-v1": {
+   "input": 0.3,
+   "output": 2.5
+  },
+  "nova-lite-v1": {
+   "input": 0.06,
+   "output": 0.24
+  },
+  "nova-micro-v1": {
+   "input": 0.035,
+   "output": 0.14
+  },
+  "nova-premier-v1": {
+   "input": 2.5,
+   "output": 12.5,
+   "cacheRead": 0.625
+  },
+  "nova-pro-v1": {
+   "input": 0.8,
+   "output": 3.2
+  },
+  "o1": {
+   "input": 15,
+   "output": 60,
+   "cacheRead": 7.5
+  },
+  "o1-2024-12-17": {
+   "input": 15,
+   "output": 60,
+   "cacheRead": 7.5
+  },
+  "o1-pro": {
+   "input": 150,
+   "output": 600
+  },
+  "o1-pro-2025-03-19": {
+   "input": 150,
+   "output": 600
+  },
+  "o3": {
+   "input": 2,
+   "output": 8,
+   "cacheRead": 0.5
+  },
+  "o3-2025-04-16": {
+   "input": 2,
+   "output": 8,
+   "cacheRead": 0.5
+  },
+  "o3-deep-research": {
+   "input": 10,
+   "output": 40,
+   "cacheRead": 2.5
+  },
+  "o3-mini": {
+   "input": 1.1,
+   "output": 4.4,
+   "cacheRead": 0.55
+  },
+  "o3-mini-2025-01-31": {
+   "input": 1.1,
+   "output": 4.4,
+   "cacheRead": 0.55
+  },
+  "o3-mini-high": {
+   "input": 1.1,
+   "output": 4.4,
+   "cacheRead": 0.55
+  },
+  "o3-pro": {
+   "input": 20,
+   "output": 80
+  },
+  "o3-pro-2025-06-10": {
+   "input": 20,
+   "output": 80
+  },
+  "o4-mini": {
+   "input": 1.1,
+   "output": 4.4,
+   "cacheRead": 0.275
+  },
+  "o4-mini-2025-04-16": {
+   "input": 1.1,
+   "output": 4.4,
+   "cacheRead": 0.275
+  },
+  "o4-mini-deep-research": {
+   "input": 2,
+   "output": 8,
+   "cacheRead": 0.5
+  },
+  "o4-mini-high": {
+   "input": 1.1,
+   "output": 4.4,
+   "cacheRead": 0.275
+  },
+  "open-mistral-nemo": {
+   "input": 0.3,
+   "output": 0.3,
+   "cacheRead": 0.03
+  },
+  "palmyra-x5": {
+   "input": 0.6,
+   "output": 6
+  },
+  "pareto": {
+   "input": 2.5,
+   "output": 7.5,
+   "cacheRead": 0.25
+  },
+  "perceptron-mk1": {
+   "input": 0.15,
+   "output": 1.5
+  },
+  "phi-4": {
+   "input": 0.07,
+   "output": 0.14
+  },
+  "pixtral-large-latest": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.2
+  },
+  "qwen-2.5-72b-instruct": {
+   "input": 0.36,
+   "output": 0.4
+  },
+  "qwen-2.5-7b-instruct": {
+   "input": 0.1,
+   "output": 0.2
+  },
+  "qwen-2.5-coder-32b-instruct": {
+   "input": 0.66,
+   "output": 1
+  },
+  "qwen-coder": {
+   "input": 0.3,
+   "output": 1.5
+  },
+  "qwen-max": {
+   "input": 1.6,
+   "output": 6.4
+  },
+  "qwen-plus": {
+   "input": 0.4,
+   "output": 1.2
+  },
+  "qwen-plus-2025-01-25": {
+   "input": 0.4,
+   "output": 1.2
+  },
+  "qwen-plus-2025-04-28": {
+   "input": 0.4,
+   "output": 1.2
+  },
+  "qwen-plus-2025-07-14": {
+   "input": 0.4,
+   "output": 1.2
+  },
+  "qwen-plus-2025-07-28": {
+   "input": 0.26,
+   "output": 0.78,
+   "cacheRead": 0.052,
+   "cacheWrite": 0.325,
+   "tiers": [
+    {
+     "above": 256000,
+     "input": 0.78,
+     "output": 2.34
+    }
+   ]
+  },
+  "qwen-turbo": {
+   "input": 0.05,
+   "output": 0.2
+  },
+  "qwen-turbo-2024-11-01": {
+   "input": 0.05,
+   "output": 0.2
+  },
+  "qwen-turbo-2025-04-28": {
+   "input": 0.05,
+   "output": 0.2
+  },
+  "qwen-turbo-latest": {
+   "input": 0.05,
+   "output": 0.2
+  },
+  "qwen-vl-plus": {
+   "input": 0.21,
+   "output": 0.63
+  },
+  "qwen2.5-vl-72b-instruct": {
+   "input": 0.8,
+   "output": 1,
+   "cacheRead": 0.4
+  },
+  "qwen3-14b": {
+   "input": 0.12,
+   "output": 0.24
+  },
+  "qwen3-235b-a22b": {
+   "input": 0.455,
+   "output": 1.82
+  },
+  "qwen3-235b-a22b-2507": {
+   "input": 0.0875,
+   "output": 0.35,
+   "cacheRead": 0.0175
+  },
+  "qwen3-235b-a22b-thinking-2507": {
+   "input": 0.23,
+   "output": 2.3
+  },
+  "qwen3-30b-a3b": {
+   "input": 0.12,
+   "output": 0.5
+  },
+  "qwen3-30b-a3b-instruct-2507": {
+   "input": 0.1,
+   "output": 0.3
+  },
+  "qwen3-30b-a3b-thinking-2507": {
+   "input": 0.2,
+   "output": 2.4
+  },
+  "qwen3-32b": {
+   "input": 0.08,
+   "output": 0.28
+  },
+  "qwen3-8b": {
+   "input": 0.117,
+   "output": 0.455
+  },
+  "qwen3-coder": {
+   "input": 0.3,
+   "output": 1,
+   "cacheRead": 0.1
+  },
+  "qwen3-coder-30b-a3b-instruct": {
+   "input": 0.07,
+   "output": 0.28
+  },
+  "qwen3-coder-flash": {
+   "input": 0.195,
+   "output": 0.975,
+   "cacheRead": 0.039,
+   "cacheWrite": 0.24375,
+   "tiers": [
+    {
+     "above": 32000,
+     "input": 0.325,
+     "output": 1.625,
+     "cacheRead": 0.065,
+     "cacheWrite": 0.40625
+    },
+    {
+     "above": 128000,
+     "input": 0.52,
+     "output": 2.6,
+     "cacheRead": 0.104,
+     "cacheWrite": 0.65
+    }
+   ]
+  },
+  "qwen3-coder-next": {
+   "input": 0.12,
+   "output": 0.8,
+   "cacheRead": 0.07
+  },
+  "qwen3-coder-plus": {
+   "input": 0.65,
+   "output": 3.25,
+   "cacheRead": 0.13,
+   "cacheWrite": 0.8125,
+   "tiers": [
+    {
+     "above": 32000,
+     "input": 1.17,
+     "output": 5.85,
+     "cacheRead": 0.234,
+     "cacheWrite": 1.4625
+    },
+    {
+     "above": 128000,
+     "input": 1.95,
+     "output": 9.75,
+     "cacheRead": 0.39,
+     "cacheWrite": 2.4375
+    }
+   ]
+  },
+  "qwen3-max": {
+   "input": 0.78,
+   "output": 3.9,
+   "cacheRead": 0.156,
+   "cacheWrite": 0.975,
+   "tiers": [
+    {
+     "above": 32000,
+     "input": 1.56,
+     "output": 7.8,
+     "cacheRead": 0.312,
+     "cacheWrite": 1.95
+    },
+    {
+     "above": 128000,
+     "input": 1.95,
+     "output": 9.75,
+     "cacheRead": 0.39,
+     "cacheWrite": 2.4375
+    }
+   ]
+  },
+  "qwen3-max-thinking": {
+   "input": 0.78,
+   "output": 3.9,
+   "tiers": [
+    {
+     "above": 32000,
+     "input": 1.56,
+     "output": 7.8
+    },
+    {
+     "above": 128000,
+     "input": 1.95,
+     "output": 9.75
+    }
+   ]
+  },
+  "qwen3-next-80b-a3b-instruct": {
+   "input": 0.15,
+   "output": 1.2
+  },
+  "qwen3-next-80b-a3b-thinking": {
+   "input": 0.15,
+   "output": 1.2
+  },
+  "qwen3-vl-235b-a22b-instruct": {
+   "input": 0.4,
+   "output": 1.6
+  },
+  "qwen3-vl-235b-a22b-thinking": {
+   "input": 0.4,
+   "output": 4
+  },
+  "qwen3-vl-30b-a3b-instruct": {
+   "input": 0.13,
+   "output": 0.52
+  },
+  "qwen3-vl-30b-a3b-thinking": {
+   "input": 0.2,
+   "output": 2.4
+  },
+  "qwen3-vl-32b-instruct": {
+   "input": 0.16,
+   "output": 0.64
+  },
+  "qwen3-vl-32b-thinking": {
+   "input": 0.16,
+   "output": 2.87
+  },
+  "qwen3-vl-8b-instruct": {
+   "input": 0.117,
+   "output": 0.455
+  },
+  "qwen3-vl-8b-thinking": {
+   "input": 0.18,
+   "output": 2.1
+  },
+  "qwen3.5-122b-a10b": {
+   "input": 0.26,
+   "output": 2.08
+  },
+  "qwen3.5-27b": {
+   "input": 0.195,
+   "output": 1.56
+  },
+  "qwen3.5-35b-a3b": {
+   "input": 0.3125,
+   "output": 1.25,
+   "cacheRead": 0.15625
+  },
+  "qwen3.5-397b-a17b": {
+   "input": 0.55,
+   "output": 3.5,
+   "cacheRead": 0.225
+  },
+  "qwen3.5-9b": {
+   "input": 0.1,
+   "output": 0.15
+  },
+  "qwen3.5-flash-02-23": {
+   "input": 0.065,
+   "output": 0.26
+  },
+  "qwen3.5-plus-02-15": {
+   "input": 0.26,
+   "output": 1.56,
+   "tiers": [
+    {
+     "above": 256000,
+     "input": 0.325,
+     "output": 1.95
+    }
+   ]
+  },
+  "qwen3.5-plus-20260420": {
+   "input": 0.3,
+   "output": 1.8,
+   "cacheWrite": 0.375,
+   "tiers": [
+    {
+     "above": 256000,
+     "input": 0.375,
+     "output": 2.25,
+     "cacheWrite": 0.46875
+    }
+   ]
+  },
+  "qwen3.6-27b": {
+   "input": 0.32,
+   "output": 2.7,
+   "cacheRead": 0.15
+  },
+  "qwen3.6-35b-a3b": {
+   "input": 0.15,
+   "output": 1,
+   "cacheRead": 0.05
+  },
+  "qwen3.6-flash": {
+   "input": 0.1875,
+   "output": 1.125,
+   "cacheWrite": 0.234375,
+   "tiers": [
+    {
+     "above": 256000,
+     "input": 0.75,
+     "output": 3,
+     "cacheWrite": 0.9375
+    }
+   ]
+  },
+  "qwen3.6-max-preview": {
+   "input": 1.027,
+   "output": 6.162,
+   "cacheWrite": 1.28375,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 1.58,
+     "output": 9.48,
+     "cacheWrite": 1.975
+    }
+   ]
+  },
+  "qwen3.6-plus": {
+   "input": 0.325,
+   "output": 1.95,
+   "cacheWrite": 0.40625,
+   "tiers": [
+    {
+     "above": 256000,
+     "input": 1.3,
+     "output": 3.9,
+     "cacheWrite": 1.625
+    }
+   ]
+  },
+  "qwen3.7-flash": {
+   "input": 0.03,
+   "output": 0.13,
+   "cacheRead": 0.006,
+   "cacheWrite": 0.038,
+   "tiers": [
+    {
+     "above": 32000,
+     "input": 0.1,
+     "output": 0.4,
+     "cacheRead": 0.02,
+     "cacheWrite": 0.125
+    },
+    {
+     "above": 256000,
+     "input": 0.2,
+     "output": 0.8,
+     "cacheRead": 0.04,
+     "cacheWrite": 0.25
+    }
+   ]
+  },
+  "qwen3.7-max": {
+   "input": 2.5,
+   "output": 7.5,
+   "cacheRead": 0.5
+  },
+  "qwen3.7-plus": {
+   "input": 0.32,
+   "output": 1.28,
+   "cacheRead": 0.064,
+   "cacheWrite": 0.4,
+   "tiers": [
+    {
+     "above": 256000,
+     "input": 0.96,
+     "output": 3.84,
+     "cacheRead": 0.192,
+     "cacheWrite": 1.2
+    }
+   ]
+  },
+  "qwen3.8-2.4t-a95b": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.25
+  },
+  "qwen3.8-27b": {
+   "input": 0.42,
+   "output": 3,
+   "cacheRead": 0.085
+  },
+  "qwen3.8-flash": {
+   "input": 0.15,
+   "output": 0.47,
+   "cacheRead": 0.016,
+   "cacheWrite": 0.2
+  },
+  "qwen3.8-max": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.25
+  },
+  "qwen3.8-max-0902": {
+   "input": 2,
+   "output": 6,
+   "cacheRead": 0.25,
+   "cacheWrite": 2.5
+  },
+  "qwen3.8-max-prime": {
+   "input": 4,
+   "output": 12,
+   "cacheRead": 0.5
+  },
+  "qwen3.8-omni-flash": {
+   "input": 0.15,
+   "output": 0.47,
+   "cacheRead": 0.016
+  },
+  "qwq-plus": {
+   "input": 0.8,
+   "output": 2.4
+  },
+  "reka-edge": {
+   "input": 0.1,
+   "output": 0.1
+  },
+  "reka-flash-3": {
+   "input": 0.1,
+   "output": 0.2
+  },
+  "relace-apply-3": {
+   "input": 0.85,
+   "output": 1.25
+  },
+  "relace-search": {
+   "input": 1,
+   "output": 3
+  },
+  "remm-slerp-l2-13b": {
+   "input": 0.35,
+   "output": 0.65
+  },
+  "router": {
+   "input": 0.85,
+   "output": 3.4
+  },
+  "sakana-namazu": {
+   "input": 0.95,
+   "output": 4,
+   "cacheRead": 0.15
+  },
+  "schematron-v2-small": {
+   "input": 0.05,
+   "output": 0.23,
+   "cacheRead": 0.05
+  },
+  "schematron-v2-turbo": {
+   "input": 0.03,
+   "output": 0.15,
+   "cacheRead": 0.03
+  },
+  "seed-1.6": {
+   "input": 0.25,
+   "output": 2,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0.5,
+     "output": 4
+    }
+   ]
+  },
+  "seed-1.6-flash": {
+   "input": 0.075,
+   "output": 0.3,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0.1,
+     "output": 0.8
+    }
+   ]
+  },
+  "seed-2-1-turbo": {
+   "input": 0.5,
+   "output": 2.5
+  },
+  "seed-2.0-code": {
+   "input": 0.5,
+   "output": 3,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 1,
+     "output": 6
+    }
+   ]
+  },
+  "seed-2.0-lite": {
+   "input": 0.25,
+   "output": 2,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0.5,
+     "output": 4
+    }
+   ]
+  },
+  "seed-2.0-mini": {
+   "input": 0.1,
+   "output": 0.4,
+   "tiers": [
+    {
+     "above": 128000,
+     "input": 0.2,
+     "output": 0.8
+    }
+   ]
+  },
+  "skyfall-36b-v2": {
+   "input": 0.55,
+   "output": 0.8,
+   "cacheRead": 0.25
+  },
+  "solar-mini4": {
+   "input": 0.05,
+   "output": 0.2,
+   "cacheRead": 0.005
+  },
+  "solar-pro-3": {
+   "input": 0.15,
+   "output": 0.6,
+   "cacheRead": 0.015
+  },
+  "solar-pro4": {
+   "input": 0.09,
+   "output": 0.36,
+   "cacheRead": 0.018
+  },
+  "sonar": {
+   "input": 1,
+   "output": 1
+  },
+  "sonar-deep-research": {
+   "input": 2,
+   "output": 8
+  },
+  "sonar-pro": {
+   "input": 3,
+   "output": 15
+  },
+  "sonar-pro-search": {
+   "input": 3,
+   "output": 15
+  },
+  "sonar-reasoning-pro": {
+   "input": 2,
+   "output": 8
+  },
+  "space-bunny-alpha": {
+   "input": 0,
+   "output": 0
+  },
+  "step-3.5-flash": {
+   "input": 0.1,
+   "output": 0.3
+  },
+  "step-3.7-flash": {
+   "input": 0.2,
+   "output": 1.15,
+   "cacheRead": 0.04
+  },
+  "ternary-bonsai-2-27b": {
+   "input": 0.075,
+   "output": 0.5
+  },
+  "trinity-large-thinking": {
+   "input": 0.25,
+   "output": 0.8,
+   "cacheRead": 0.06
+  },
+  "ui-tars-1.5-7b": {
+   "input": 0.1,
+   "output": 0.2,
+   "cacheRead": 0.1
+  },
+  "unslopnemo-12b": {
+   "input": 0.4,
+   "output": 0.4
+  },
+  "voxtral-small-24b-2507": {
+   "input": 0.1,
+   "output": 0.3,
+   "cacheRead": 0.01
+  },
+  "voxtral-small-2507": {
+   "input": 0.1,
+   "output": 0.4,
+   "cacheRead": 0.01
+  },
+  "voxtral-small-latest": {
+   "input": 0.1,
+   "output": 0.4,
+   "cacheRead": 0.01
+  },
+  "weaver": {
+   "input": 0.4,
+   "output": 0.75
+  },
+  "wizardlm-2-8x22b": {
+   "input": 0.62,
+   "output": 0.62
+  },
+  "zai-glm-5": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.14
+  },
+  "zai-glm-5-2": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.14
+  },
+  "zai-glm-5-3": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.14
+  },
+  "zai-glm-latest": {
+   "input": 1.4,
+   "output": 4.4,
+   "cacheRead": 0.14
+  }
+ }
+}

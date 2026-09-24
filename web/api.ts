@@ -11,6 +11,7 @@ export interface Session {
   session_id: string | null;
   agent_id: string | null;
   agent_name: string | null;
+  client: string | null;
   parent_id: number | null;
   child_count: number;
   created_at: number;
@@ -22,31 +23,44 @@ export interface Session {
   output_tokens: number;
   cache_read_tokens: number;
   cache_write_tokens: number;
+  cost: number;
+  unpriced: number;
+  group_cost: number;
   pending: number;
   last_error: string | null;
+  last_stop_reason: string | null;
 }
 
-export interface RequestSummary {
+interface RequestBase {
   id: number;
   state: "pending" | "done" | "error";
+  provider: string;
   model: string | null;
+  url: string;
   status: number | null;
   started_at: number;
+  /** When the response headers arrived (captures from before this was recorded don't have it). */
+  response_started_at: number | null;
   ended_at: number | null;
   msg_count: number;
   error: string | null;
+  usage: Usage | null;
+  cost: number | null;
 }
 
-export interface RequestDetail extends RequestSummary {
-  provider: string;
-  url: string;
+/** A row of the session's request list. */
+export interface RequestSummary extends RequestBase {
+  stop_reason: string | null;
+  tool_calls: string[];
+}
+
+export interface RequestDetail extends RequestBase {
   method: string;
   normalized: Normalized;
   request_headers: Record<string, string>;
   response_headers: Record<string, string>;
   request_body: string | null;
   response_body: string | null;
-  usage: Usage | null;
 }
 
 export type Update =
@@ -63,6 +77,7 @@ async function get<T>(path: string): Promise<T> {
 export const api = {
   sessions: () => get<Session[]>("/api/sessions"),
   request: (id: number) => get<RequestDetail>(`/api/requests/${id}`),
+  requests: (sessionId: number) => get<RequestSummary[]>(`/api/sessions/${sessionId}/requests`),
   deleteSession: (id: number) => fetch(`/api/sessions/${id}`, { method: "DELETE" }),
   clear: () => fetch("/api/sessions", { method: "DELETE" }),
 };
@@ -115,6 +130,30 @@ export function fmtAgo(ts: number, now: number): string {
 
 export function fmtDuration(start: number, end: number | null): string {
   if (!end) return "…";
-  const s = end - start;
-  return s < 10 ? `${s.toFixed(2)}s` : `${s.toFixed(1)}s`;
+  return fmtSeconds(end - start);
+}
+
+export function fmtSeconds(s: number): string {
+  if (s < 10) return `${s.toFixed(2)}s`;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
+  return `${Math.floor(s / 3600)}h ${Math.round((s % 3600) / 60)}m`;
+}
+
+export function fmtCost(usd: number | null | undefined): string {
+  if (usd == null) return "–";
+  if (usd === 0) return "$0";
+  if (usd < 0.01) return "<$0.01";
+  if (usd < 100) return `$${usd.toFixed(2)}`;
+  return `$${Math.round(usd).toLocaleString()}`;
+}
+
+/** Full prompt size of a response: uncached input plus cache reads and writes. */
+export const contextTokens = (u: Usage | null | undefined) => (u ? (u.input ?? 0) + (u.cacheRead ?? 0) + (u.cacheWrite ?? 0) : 0);
+
+export function fmtTime(ts: number): string {
+  const d = new Date(ts * 1000);
+  const today = new Date().toDateString() === d.toDateString();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return today ? time : `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
 }

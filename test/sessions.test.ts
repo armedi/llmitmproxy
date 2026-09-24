@@ -181,3 +181,61 @@ describe("export", () => {
     expect(exportSession(store, s, "all").requests.map((r) => r.id)).toEqual(ids.map((i) => i.requestId));
   });
 });
+
+describe("requests, cost and clients", () => {
+  const pricing = { hash: "t", models: { "claude-sonnet-5": { input: 3, output: 15, cacheRead: 0.3 }, "gpt-5.1": { input: 1, output: 8, cacheRead: 0.1 } } };
+
+  test("listRequests carries usage, cost, stop reason and tool calls", () => {
+    store = new Store(":memory:", pricing);
+    const ids = ingestAll(anthropicTurns().map((e) => ({ ...e, response_started_at: e.started_at + 0.4 })));
+    const rows = store.listRequests(ids[0]!.sessionId);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({ stop_reason: "tool_use", tool_calls: ["Bash"], model: "claude-sonnet-5" });
+    expect(rows[0]!.usage).toMatchObject({ input: 100, cacheRead: 50 });
+    expect(rows[0]!.response_started_at).toBe(rows[0]!.started_at + 0.4);
+    expect(rows[0]!.cost).toBeCloseTo((100 * 3 + 50 * 0.3 + rows[0]!.usage!.output! * 15) / 1e6);
+    const s = store.getSession(ids[0]!.sessionId)!;
+    expect(s.cost).toBeCloseTo(rows.reduce((a, r) => a + r.cost!, 0));
+    expect(s.unpriced).toBe(0);
+    expect(s.last_stop_reason).toBe(rows[2]!.stop_reason);
+    expect(s.group_cost).toBeCloseTo(s.cost);
+  });
+
+  test("unknown models count as unpriced", () => {
+    store = new Store(":memory:", { hash: "none", models: {} });
+    const ids = ingestAll(anthropicTurns());
+    expect(store.getSession(ids[0]!.sessionId)).toMatchObject({ cost: 0, unpriced: 3 });
+  });
+
+  test("openai cached tokens are not double counted in session totals", () => {
+    const ids = ingestAll(openaiChatTurns());
+    // 50 uncached, then 80 prompt of which 40 cached.
+    expect(store.getSession(ids[0]!.sessionId)).toMatchObject({ input_tokens: 90, cache_read_tokens: 40 });
+  });
+
+  test("client is detected from the user agent", () => {
+    const ids = ingestAll(anthropicTurns().map((e) => ({ ...e, request_headers: { ...e.request_headers, "user-agent": "claude-cli/2.1.0 (external, cli)" } })));
+    expect(store.getSession(ids[0]!.sessionId)!.client).toBe("claude-code");
+  });
+
+  test("reopening re-parses old usage, backfills clients and recomputes costs", () => {
+    const path = `${require("node:os").tmpdir()}/mitllmproxy-test-${Date.now()}.db`;
+    try {
+      store = new Store(path, pricing);
+      const ids = ingestAll(openaiChatTurns().map((e) => ({ ...e, request_headers: { ...e.request_headers, "user-agent": "codex_cli_rs/0.5" } })));
+      const sid = ids[0]!.sessionId;
+      // Simulate a database written by an older version: prompt counts included cached tokens, no client, no cost.
+      store.db.exec(`UPDATE requests SET usage = json_set(usage, '$.input', 80) WHERE id = ${ids[1]!.requestId};
+        UPDATE sessions SET input_tokens = 130, client = NULL, cost = 0; UPDATE requests SET cost = NULL;
+        UPDATE meta SET value = '1' WHERE key = 'parser_version';`);
+      store.db.close();
+      store = new Store(path, { ...pricing, hash: "t2" });
+      expect(store.getSession(sid)).toMatchObject({ input_tokens: 90, client: "codex" });
+      expect(store.getSession(sid)!.cost).toBeGreaterThan(0);
+      expect(store.listRequests(sid)[1]!.usage!.input).toBe(40);
+    } finally {
+      store.db.close();
+      for (const f of [path, `${path}-wal`, `${path}-shm`]) require("node:fs").rmSync(f, { force: true });
+    }
+  });
+});

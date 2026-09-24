@@ -44,11 +44,15 @@ function mergeBlocks(blocks: Block[]): Block[] {
   return out;
 }
 
+/** Gemini counts cached tokens inside the prompt; `Usage.input` is the uncached part. `output` includes thoughts. */
 function usage(u: any): Usage | undefined {
   if (!u) return undefined;
+  const prompt = u.promptTokenCount;
+  const cached = u.cachedContentTokenCount;
   return {
-    input: u.promptTokenCount,
-    output: u.candidatesTokenCount,
+    input: prompt != null && cached ? Math.max(0, prompt - cached) : prompt,
+    // Thoughts are billed as output but not counted in candidatesTokenCount.
+    output: u.candidatesTokenCount != null || u.thoughtsTokenCount != null ? (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) : undefined,
     cacheRead: u.cachedContentTokenCount,
     reasoning: u.thoughtsTokenCount,
     total: u.totalTokenCount,
