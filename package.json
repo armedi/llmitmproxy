@@ -4,11 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun run server",
-    "server": "NODE_ENV=production bun server/index.ts",
+    "start": "NODE_ENV=production bun server/index.ts",
+    "dev": "bun --hot server/index.ts",
     "replay": "bun scripts/replay.ts",
-    "dev": "PORT=4546 MITLLMPROXY_DB=mitllmproxy-dev.db bun --hot server/index.ts",
-    "dev:replay": "MITLLMPROXY_URL=http://127.0.0.1:4546/ingest bun scripts/replay.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
