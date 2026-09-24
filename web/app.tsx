@@ -1,5 +1,5 @@
 import { Keyboard, Monitor, Moon, PanelLeftClose, PanelLeftOpen, Sun } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, useUpdates, type Session } from "./api";
 import { useConfirm } from "./components/Confirm";
@@ -203,4 +203,8 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+);

@@ -233,8 +233,9 @@ The dev server runs alongside `bun start` without touching it:
 | -------- | ---------------- | -------------------- |
 | UI       | :4545            | :4546                |
 | Database | `~/.mitllmproxy/mitllmproxy.db` | `mitllmproxy-dev.db` |
+| UI build | [React Compiler](https://react.dev/learn/react-compiler), minified | hot reload, no React Compiler |
 
-Both are just `bin/mitllmproxy` with different flags. See the `start` and `dev` scripts in `package.json`.
+Both are just `bin/mitllmproxy` with different flags. See the `start` and `dev` scripts in `package.json`. Bun only runs the React Compiler in `Bun.build`, not for the HTML imports that hot reload uses, so `bun start` bundles the UI at startup (see `server/ui.ts`). Check UI changes with `bun start` as well, since the compiler's memoization can change behavior.
 
 To send real traffic to the dev build, run a second mitmproxy on another port with the addon pointed at the dev server:
 

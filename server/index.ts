@@ -1,11 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
-import index from "../web/index.html";
 import { downloadName, exportSession } from "./export";
 import { drainSpool, type Imported, spoolDir } from "./spool";
 import { Store } from "./store";
 import type { IngestEvent } from "./types";
+import { uiRoutes } from "./ui";
 
 /** Same default as the addon, which writes captures next to it. */
 export const DEFAULT_DB = resolve(homedir(), ".mitllmproxy", "mitllmproxy.db");
@@ -41,11 +41,9 @@ export async function startServer(opts: StartOptions = {}) {
   const server = Bun.serve({
     port: opts.port ?? DEFAULT_PORT,
     hostname: opts.host ?? "127.0.0.1",
-    development: opts.dev ? { hmr: true, console: false } : false,
+    development: opts.dev ? { hmr: true, console: true } : false,
     routes: {
-      "/": index,
-      "/session/:id": index,
-      "/session/:id/request/:rid": index,
+      ...(await uiRoutes(!!opts.dev)),
 
       "/ingest": {
         POST: async (req) => {
