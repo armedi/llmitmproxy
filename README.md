@@ -7,7 +7,7 @@ Agents resend the whole conversation on every turn, so mitllmproxy groups those 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Both streaming (SSE) and non-streaming responses are supported.
 
 ```
-client ──HTTPS_PROXY──▶ mitmdump -s addon/mitllmproxy_addon.py ──POST /ingest──▶ bun server (:4545) ──ws──▶ UI
+client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──POST /ingest──▶ bun server (:4545) ──ws──▶ UI
 ```
 
 ## Why an addon (and not mitmweb's API)
@@ -22,17 +22,48 @@ The addon uses only the standard library, so nothing needs to be installed into 
 
 ```sh
 bun install
-bun start            # server + proxy together: UI on http://127.0.0.1:4545, mitmdump on :8080
+bun start            # UI + ingest server on http://127.0.0.1:4545
 ```
 
-To run them separately, for example to use mitmweb instead of mitmdump:
+mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmproxy's own docs:
+
+- [Installation](https://docs.mitmproxy.org/stable/overview/installation/)
+- [Getting started](https://docs.mitmproxy.org/stable/overview/getting-started/)
+- [Installing the CA certificate](https://docs.mitmproxy.org/stable/concepts/certificates/)
+
+### Load the addon
+
+Load `addon/mitllmproxy_addon.py` into mitmproxy with its `scripts` option. Use the absolute path to the file:
+
+- **Every start (recommended):** add it to `~/.mitmproxy/config.yaml`. See [mitmproxy's options docs](https://docs.mitmproxy.org/stable/concepts/options/).
+
+  ```yaml
+  scripts:
+    - /path/to/mitllmproxy/addon/mitllmproxy_addon.py
+  ```
+
+- **One run:** pass `-s /path/to/mitllmproxy/addon/mitllmproxy_addon.py` to `mitmdump`, `mitmweb` or `mitmproxy`.
+- **While it's running:** in mitmweb, go to Options → Edit Options → `scripts`. In the mitmproxy console, run `:set scripts=/path/...`. This replaces any scripts already set, so list those in the same command.
+
+Only flows that arrive after the addon loads are captured. The addon reads `MITLLMPROXY_URL` and `MITLLMPROXY_CONFIG` from the environment of the mitmproxy process, not from your shell. The defaults (port 4545 and this repo's `mitllmproxy.config.json`) work without setting either one.
+
+### Point clients at the proxy
+
+The examples below use mitmproxy's default port, 8080. Replace it with the port you run mitmproxy on. The CA certificate is at `~/.mitmproxy/mitmproxy-ca-cert.pem`, and mitmproxy generates it the first time it runs.
+
+To route everything from your shell, add these to `~/.zshrc`:
 
 ```sh
-bun run server       # UI + ingest server on http://127.0.0.1:4545
-bun run proxy        # mitmdump on :8080 with the addon (or: bun run proxy:web for mitmweb)
+export HTTP_PROXY=http://127.0.0.1:8080
+export HTTPS_PROXY=http://127.0.0.1:8080
+export NO_PROXY=localhost,127.0.0.1,::1
+export SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.pem
+export NODE_EXTRA_CA_CERTS=~/.mitmproxy/mitmproxy-ca-cert.pem
 ```
 
-Point a client at the proxy. The mitmproxy CA is at `~/.mitmproxy/mitmproxy-ca-cert.pem`, and is generated the first time mitmproxy runs.
+`NO_PROXY` keeps local traffic, such as the addon posting to the viewer, off the proxy. If mitmproxy stops, the tools that respect these variables lose network access until it's back or you `unset HTTP_PROXY HTTPS_PROXY`.
+
+To route a single client instead:
 
 ```sh
 # Claude Code / Node clients
@@ -46,9 +77,8 @@ HTTPS_PROXY=http://127.0.0.1:8080 SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.p
 HTTPS_PROXY=http://127.0.0.1:8080 SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.pem codex
 ```
 
-To use the addon with a mitmproxy you already run, add `-s /path/to/mitllmproxy/addon/mitllmproxy_addon.py`.
-
 To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch requests go from pending to done.
+
 
 ## Export
 
@@ -87,19 +117,24 @@ The addon reloads the file within a second of it changing, so you don't need to 
 ```sh
 bun test          # parser + session-grouping tests
 bun run typecheck
-bun run dev       # server (hot reload) + proxy on dev ports
+bun run dev       # server with hot reload on the dev port
 bun run dev:replay
 ```
 
-The dev stack runs alongside `bun start` without touching it:
+The dev server runs alongside `bun start` without touching it:
 
 |          | `bun start`      | `bun run dev`        |
 | -------- | ---------------- | -------------------- |
 | UI       | :4545            | :4546                |
-| Proxy    | :8080            | :9080                |
 | Database | `mitllmproxy.db` | `mitllmproxy-dev.db` |
 
-Point a client at `HTTPS_PROXY=http://127.0.0.1:9080` to send its traffic to the dev build. Both stacks share `mitllmproxy.config.json`, so filter edits in either UI apply to both.
+To send real traffic to the dev build, run a second mitmproxy on another port with the addon pointed at the dev server:
+
+```sh
+MITLLMPROXY_URL=http://127.0.0.1:4546/ingest mitmdump -p 9080 -s addon/mitllmproxy_addon.py
+```
+
+Both servers share `mitllmproxy.config.json`, so filter edits in either UI apply to both.
 
 Layout:
 

@@ -4,14 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun run --parallel server proxy",
+    "start": "bun run server",
     "server": "NODE_ENV=production bun server/index.ts",
-    "proxy": "PYTHONUNBUFFERED=1 mitmdump -s addon/mitllmproxy_addon.py -p 8080 --set flow_detail=0",
-    "proxy:web": "mitmweb -s addon/mitllmproxy_addon.py -p 8080",
     "replay": "bun scripts/replay.ts",
-    "dev": "bun run --parallel dev:server dev:proxy",
-    "dev:server": "PORT=4546 MITLLMPROXY_DB=mitllmproxy-dev.db bun --hot server/index.ts",
-    "dev:proxy": "PYTHONUNBUFFERED=1 MITLLMPROXY_URL=http://127.0.0.1:4546/ingest mitmdump -s addon/mitllmproxy_addon.py -p 9080 --set flow_detail=0",
+    "dev": "PORT=4546 MITLLMPROXY_DB=mitllmproxy-dev.db bun --hot server/index.ts",
     "dev:replay": "MITLLMPROXY_URL=http://127.0.0.1:4546/ingest bun scripts/replay.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
