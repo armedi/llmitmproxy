@@ -8,7 +8,11 @@ export interface Session {
   title: string;
   provider: string;
   model: string | null;
-  hint: string | null;
+  session_id: string | null;
+  agent_id: string | null;
+  agent_name: string | null;
+  parent_id: number | null;
+  child_count: number;
   created_at: number;
   updated_at: number;
   request_count: number;
@@ -47,7 +51,7 @@ export interface RequestDetail extends RequestSummary {
 
 export type Update =
   | { type: "update"; session: Session; requestId: number; state: string }
-  | { type: "deleted"; id: number }
+  | { type: "deleted"; ids: number[] }
   | { type: "reset" };
 
 async function get<T>(path: string): Promise<T> {

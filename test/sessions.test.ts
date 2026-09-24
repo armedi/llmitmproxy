@@ -22,7 +22,7 @@ describe("session grouping", () => {
     expect(s.input_tokens).toBe(600);
   });
 
-  test("works without an explicit session hint (prefix chain only)", () => {
+  test("works without an explicit session id (prefix chain only)", () => {
     const turns = anthropicTurns().map((e) => {
       const body = JSON.parse(e.request_body!.text!);
       delete body.metadata;
@@ -42,7 +42,7 @@ describe("session grouping", () => {
     expect(sessions.map((s) => s.title).sort()).toEqual(["task A", "task B"]);
   });
 
-  test("same prompt in two sessions without hints still splits after divergence", () => {
+  test("same prompt in two sessions without session ids still splits after divergence", () => {
     const strip = (evs: any[]) =>
       evs.map((e) => {
         const body = JSON.parse(e.request_body.text);
@@ -65,15 +65,61 @@ describe("session grouping", () => {
     expect(store.listSessions()).toHaveLength(2);
   });
 
-  test("subagent under the same hint is its own session", () => {
+  test("a side call under the same session id is its own session, linked to the main one", () => {
     const turns = anthropicTurns();
-    ingestAll(turns);
+    const ids = ingestAll(turns);
     const body = JSON.parse(turns[0]!.request_body!.text!);
     body.system = [{ type: "text", text: "You are a file search specialist." }];
     body.messages = [{ role: "user", content: "Find all config files" }];
-    store.ingest(event(ANTHROPIC_URL, body, turns[0]!.response_body!.text!));
+    const side = store.ingest(event(ANTHROPIC_URL, body, turns[0]!.response_body!.text!));
     expect(store.listSessions()).toHaveLength(2);
+    const main = store.getSession(ids[0]!.sessionId)!;
+    expect(main.session_id).toBe("3f1c2a9e-1111-2222-3333-444455556666");
+    expect(main.parent_id).toBeNull();
+    expect(main.child_count).toBe(1);
+    expect(store.getSession(side.sessionId)!.parent_id).toBe(main.id);
   });
+
+  test("header session id groups turns even when the tool set changes", () => {
+    const hdr = { "x-claude-code-session-id": "sess-1" };
+    const turns = anthropicTurns().map((e, i) => {
+      const body = JSON.parse(e.request_body!.text!);
+      delete body.metadata;
+      if (i === 2) body.tools.push({ name: "mcp__new", input_schema: { type: "object" } });
+      return { ...e, request_headers: hdr, request_body: { text: JSON.stringify(body) } };
+    });
+    ingestAll(turns);
+    const sessions = store.listSessions();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]!.session_id).toBe("sess-1");
+    expect(sessions[0]!.request_count).toBe(3);
+  });
+
+  test("subagent requests are keyed by agent id and linked to the main session", () => {
+    const turns = anthropicTurns();
+    const ids = ingestAll(turns);
+    const sub = (text: string) => {
+      const body = JSON.parse(turns[0]!.request_body!.text!);
+      body.messages = [{ role: "user", content: text }];
+      return event(ANTHROPIC_URL, body, turns[0]!.response_body!.text!, {
+        request_headers: {
+          "x-claude-code-session-id": "3f1c2a9e-1111-2222-3333-444455556666",
+          "x-claude-code-agent-id": "agent-1",
+          "x-claude-code-agent-type": "Explore",
+        },
+      });
+    };
+    const a = store.ingest(sub("Find config files"));
+    // Different messages (e.g. an auxiliary call made for the subagent) still join by agent id.
+    const b = store.ingest(sub("Summarize what you found"));
+    expect(b.sessionId).toBe(a.sessionId);
+    const s = store.getSession(a.sessionId)!;
+    expect(s).toMatchObject({ agent_id: "agent-1", agent_name: "Explore", parent_id: ids[0]!.sessionId, request_count: 2 });
+
+    expect(store.deleteSession(ids[0]!.sessionId).sort()).toEqual([ids[0]!.sessionId, a.sessionId].sort());
+    expect(store.listSessions()).toHaveLength(0);
+  });
+
 
   test("in-body system messages (newer Claude Code) keep their role and still chain", () => {
     const turns = anthropicTurns().map((e, i) => {

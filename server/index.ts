@@ -65,9 +65,9 @@ export async function startServer(opts: StartOptions = {}) {
       },
       "/api/sessions/:id": {
         DELETE: (req) => {
-          store.deleteSession(idParam(req));
-          server.publish("updates", JSON.stringify({ type: "deleted", id: idParam(req) }));
-          return json({ ok: true });
+          const ids = store.deleteSession(idParam(req));
+          server.publish("updates", JSON.stringify({ type: "deleted", ids }));
+          return json({ ok: true, ids });
         },
       },
       "/api/sessions/:id/export": (req) => {

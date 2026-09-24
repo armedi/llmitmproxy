@@ -802,3 +802,42 @@ pre.json {
 .menu-items .muted {
   font-size: 11px;
 }
+
+.related {
+  font-size: 12px;
+}
+.related > summary {
+  cursor: pointer;
+}
+.related ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.related li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.related li + li {
+  border-top: 1px solid var(--border);
+}
+.related li:hover {
+  background: var(--panel-2);
+}
+.related .chip.agent {
+  color: var(--accent);
+}
+.related-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

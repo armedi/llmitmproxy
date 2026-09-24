@@ -73,7 +73,7 @@ function itemsToMessages(items: any[]): Message[] {
   return out;
 }
 
-export function parseRequest(req: any, headers: Record<string, string> = {}): Omit<Normalized, "response"> {
+export function parseRequest(req: any): Omit<Normalized, "response"> {
   const { model, instructions, input, tools, stream, previous_response_id, ...params } = req ?? {};
   const toolDefs: ToolDef[] = (tools ?? []).map((t: any) => ({
     name: t.name ?? t.type,
@@ -84,7 +84,6 @@ export function parseRequest(req: any, headers: Record<string, string> = {}): Om
   const system: Block[] = contentBlocks(instructions);
   // Leading system/developer messages belong with the instructions.
   while (messages[0]?.role === "system") system.push(...messages.shift()!.content);
-  const sid = headers["session_id"] ?? headers["conversation_id"];
   return {
     provider: "openai-responses",
     model,
@@ -94,7 +93,6 @@ export function parseRequest(req: any, headers: Record<string, string> = {}): Om
     tools: toolDefs,
     messages,
     previousResponseId: previous_response_id ?? undefined,
-    sessionHint: sid ? `openai:${sid}` : undefined,
   };
 }
 

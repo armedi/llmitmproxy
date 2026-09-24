@@ -56,8 +56,10 @@ function App() {
         setSessions([]);
         setSelected(null);
       } else if (u.type === "deleted") {
-        setSessions((s) => s.filter((x) => x.id !== u.id));
+        setSessions((s) => s.filter((x) => !u.ids.includes(x.id)));
       } else if (u.type === "update" && u.session) {
+        // A new session in a group changes its main session's child count, so refetch.
+        if (!sessions.some((s) => s.id === u.session.id) && u.session.session_id) reload();
         setSessions((list) => [u.session, ...list.filter((s) => s.id !== u.session.id)].sort((a, b) => b.updated_at - a.updated_at));
         setTick((t) => ({ sessionId: u.session.id, n: t.n + 1 }));
       }
@@ -77,8 +79,9 @@ function App() {
     const q = query.trim().toLowerCase();
     return sessions.filter(
       (s) =>
+        s.parent_id == null &&
         (!provider || s.provider === provider) &&
-        (!hideOneOff || s.request_count > 1 || s.latest_msg_count > 1 || s.pending > 0) &&
+        (!hideOneOff || s.request_count > 1 || s.latest_msg_count > 1 || s.pending > 0 || s.child_count > 0) &&
         (!q || s.title.toLowerCase().includes(q) || (s.model ?? "").toLowerCase().includes(q)),
     );
   }, [sessions, query, provider, hideOneOff]);
@@ -90,6 +93,7 @@ function App() {
 
   const providers = [...new Set(sessions.map((s) => s.provider))];
   const current = sessions.find((s) => s.id === selected);
+  const activeRoot = current?.parent_id ?? current?.id;
 
   return (
     <div className="app">
@@ -130,7 +134,7 @@ function App() {
         </div>
         <ul className="session-list">
           {visible.map((s) => (
-            <li key={s.id} className={s.id === selected ? "active" : ""} onClick={() => select(s.id)}>
+            <li key={s.id} className={s.id === activeRoot ? "active" : ""} onClick={() => select(s.id)}>
               <div className="s-title">
                 {s.pending > 0 && <span className="spinner" />}
                 {s.last_error && <span className="err-dot" title={s.last_error} />}
@@ -139,6 +143,7 @@ function App() {
               <div className="s-meta">
                 <span className={`badge p-${s.provider}`}>{s.model ?? PROVIDER_LABEL[s.provider]}</span>
                 <span>{s.request_count} req</span>
+                {s.child_count > 0 && <span title="Subagents and side calls">+{s.child_count} sub</span>}
                 <span>{fmtTokens(s.input_tokens + s.cache_read_tokens + s.cache_write_tokens)} in</span>
                 <span className="ago">{fmtAgo(s.updated_at, now)}</span>
               </div>
@@ -153,7 +158,15 @@ function App() {
       </aside>
       <main className="main">
         {current ? (
-          <SessionView key={current.id} session={current} updateTick={tick.sessionId === current.id ? tick.n : 0} onDelete={() => api.deleteSession(current.id).then(() => select(null))} />
+          <SessionView
+            key={current.id}
+            session={current}
+            parent={sessions.find((s) => s.id === current.parent_id)}
+            children={sessions.filter((s) => s.parent_id === current.id)}
+            onSelect={select}
+            updateTick={tick.sessionId === current.id ? tick.n : 0}
+            onDelete={() => api.deleteSession(current.id).then(() => select(current.parent_id))}
+          />
         ) : (
           <div className="placeholder">Select a session</div>
         )}

@@ -6,11 +6,15 @@ import { Raw } from "./Raw";
 
 interface Props {
   session: Session;
+  /** The group's main session, when this is a subagent or side call. */
+  parent?: Session;
+  children: Session[];
+  onSelect: (id: number) => void;
   updateTick: number;
   onDelete: () => void;
 }
 
-export function SessionView({ session, updateTick, onDelete }: Props) {
+export function SessionView({ session, parent, children, onSelect, updateTick, onDelete }: Props) {
   const [detail, setDetail] = useState<RequestDetail | null>(null);
   const [tab, setTab] = useState<"conversation" | "raw">("conversation");
   const [markdown, setMarkdown] = useState(() => localStorage.getItem("textMode") !== "plain");
@@ -48,19 +52,28 @@ export function SessionView({ session, updateTick, onDelete }: Props) {
         <div className="session-title-row">
           <h1 title={session.title}>{session.title}</h1>
           <ExportMenu session={session} />
-          <button className="ghost danger" onClick={() => confirm("Delete this session?") && onDelete()}>
+          <button
+            className="ghost danger"
+            onClick={() => confirm(children.length ? `Delete this session and its ${children.length} subagents and side calls?` : "Delete this session?") && onDelete()}
+          >
             Delete
           </button>
         </div>
         <div className="session-meta">
           <span className={`badge p-${session.provider}`}>{session.provider}</span>
           {detail?.model && <span className="chip">{detail.model}</span>}
+          {session.session_id && (
+            <span className="chip mono" title={session.agent_id ? `Agent session id · subagent ${session.agent_id}` : "Agent session id"}>
+              {session.session_id}
+            </span>
+          )}
           <span className="spacer" />
           <span className="chip" title="Totals across all requests in this session">
             Σ in {fmtTokens(session.input_tokens)} · cache r {fmtTokens(session.cache_read_tokens)} / w {fmtTokens(session.cache_write_tokens)} · out{" "}
             {fmtTokens(session.output_tokens)}
           </span>
         </div>
+        <Related session={session} parent={parent} children={children} onSelect={onSelect} />
         {detail && (
           <div className="session-meta small">
             <StatusChip d={detail} />
@@ -111,6 +124,47 @@ export function SessionView({ session, updateTick, onDelete }: Props) {
         )}
       </div>
     </div>
+  );
+}
+
+function kindLabel(s: Session) {
+  if (s.agent_id) return s.agent_name ?? "subagent";
+  return s.latest_msg_count > 2 ? "thread" : "side call";
+}
+
+/** Links between a group's main session and its subagents and side calls. */
+function Related({ session, parent, children, onSelect }: Pick<Props, "session" | "parent" | "children" | "onSelect">) {
+  if (parent) {
+    return (
+      <div className="session-meta small">
+        <span className="chip">{kindLabel(session)}</span>
+        <span className="muted">of</span>
+        <button className="link" onClick={() => onSelect(parent.id)} title="Open the main session">
+          ← {parent.title}
+        </button>
+      </div>
+    );
+  }
+  if (!children.length) return null;
+  const counts = new Map<string, number>();
+  for (const c of children) {
+    const k = c.agent_id ? "subagent" : kindLabel(c);
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  return (
+    <details className="related">
+      <summary className="muted">{[...counts].map(([k, n]) => `${n} ${k}${n === 1 ? "" : "s"}`).join(" · ")}</summary>
+      <ul>
+        {children.map((c) => (
+          <li key={c.id} onClick={() => onSelect(c.id)}>
+            {c.pending > 0 && <span className="spinner" />}
+            <span className={`chip ${c.agent_id ? "agent" : ""}`}>{kindLabel(c)}</span>
+            <span className="related-title">{c.title}</span>
+            <span className="muted">{c.request_count} req</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

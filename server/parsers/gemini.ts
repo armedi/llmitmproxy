@@ -87,7 +87,6 @@ export function parseRequest(req: any, url: string): Omit<Normalized, "response"
     system: parts(systemInstruction ?? system_instruction),
     tools: toolDefs,
     messages,
-    sessionHint: typeof req?.session_id === "string" ? `gemini:${req.session_id}` : undefined,
   };
 }
 

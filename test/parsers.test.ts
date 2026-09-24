@@ -8,6 +8,21 @@ const parse = (ev: any) => {
 };
 
 describe("anthropic", () => {
+  test("session headers win over metadata.user_id; subagent headers are read", () => {
+    const [t1] = anthropicTurns();
+    const n = normalizeRequest({
+      ...t1!,
+      request_headers: {
+        "x-claude-code-session-id": "1ac7d908-1dcc-43f6-b465-9d9e61433d4e",
+        "x-claude-code-agent-id": "a29bb6421b39edd2a",
+        "x-claude-code-agent-type": "general-purpose",
+      },
+    });
+    expect(n.sessionId).toBe("1ac7d908-1dcc-43f6-b465-9d9e61433d4e");
+    expect(n.agentId).toBe("a29bb6421b39edd2a");
+    expect(n.agentName).toBe("general-purpose");
+  });
+
   test("request + streamed response", () => {
     const [t1, , t3] = anthropicTurns();
     const n = parse(t1);
@@ -15,7 +30,7 @@ describe("anthropic", () => {
     expect(n.model).toBe("claude-sonnet-5");
     expect(n.system).toHaveLength(3);
     expect(n.tools.map((t) => t.name)).toEqual(["Bash", "Read"]);
-    expect(n.sessionHint).toBe("claude:3f1c2a9e-1111-2222-3333-444455556666");
+    expect(n.sessionId).toBe("3f1c2a9e-1111-2222-3333-444455556666");
     expect(n.response?.blocks).toEqual([
       { type: "thinking", text: "User wants files." },
       { type: "text", text: "I'll list files." },

@@ -53,20 +53,6 @@ function usage(u: any): Usage | undefined {
   };
 }
 
-/** Claude Code puts the session id in metadata.user_id, either as JSON or as `..._session_<uuid>`. */
-function sessionHint(req: any): string | undefined {
-  const uid = req?.metadata?.user_id;
-  if (typeof uid !== "string") return undefined;
-  try {
-    const parsed = JSON.parse(uid);
-    if (parsed?.session_id) return `claude:${parsed.session_id}`;
-  } catch {
-    // not JSON
-  }
-  const m = uid.match(/session_([0-9a-f-]{8,})/i);
-  return m ? `claude:${m[1]}` : undefined;
-}
-
 export function parseRequest(req: any): Omit<Normalized, "response"> {
   const { model, system, messages, tools, metadata, stream, ...params } = req ?? {};
   const toolDefs: ToolDef[] = (tools ?? []).map((t: any) => ({
@@ -86,7 +72,6 @@ export function parseRequest(req: any): Omit<Normalized, "response"> {
     system: textBlocks(system),
     tools: toolDefs,
     messages: msgs,
-    sessionHint: sessionHint(req),
   };
 }
 

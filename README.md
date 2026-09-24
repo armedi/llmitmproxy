@@ -111,12 +111,43 @@ The addon reloads the file within a second of it changing, so you don't need to 
 
 ## How sessions are grouped
 
-1. **Scope:** requests are only compared with sessions that have the same provider, the same set of tool names, and the same explicit session id, if the request has one. Explicit ids come from Claude Code's `metadata.user_id`, and from `session_id` or `x-session-id` style headers.
-2. **Prefix chain:** a request joins the most recent session whose latest request's messages are a prefix of its own messages.
+1. **Agent session id:** when the client declares its own session id, it is stored as the session's `session_id`. All sessions with that id form one group. Each provider module in `server/providers/` knows its clients' conventions. The module for the request's host is asked first, then all the others, because gateways forward client headers:
+
+   | Provider | Session | Subagent |
+   |---|---|---|
+   | Anthropic (Claude Code) | `x-claude-code-session-id`, then `metadata.user_id` | `x-claude-code-agent-id`, `x-claude-code-agent-type` |
+   | OpenAI / ChatGPT (Codex, Cline, Roo, Pi) | `session-id`, `session_id`, `conversation_id` | Codex `thread-id`, `x-openai-subagent` |
+   | Google (Gemini CLI) | body `request.session_id`, `user_prompt_id` prefix | |
+   | OpenCode Zen / Go | `x-opencode-session` | `x-parent-session-id` |
+   | Kilo gateway | `x-kilocode-taskid` | `x-kilocode-parent-taskid` |
+   | Cline | `x-task-id` | |
+   | OpenRouter | body `session_id` | |
+   | Helicone | `helicone-session-id` | `helicone-session-path` |
+   | LiteLLM | `x-litellm-session-id`, body `litellm_session_id`, `metadata.session_id` | |
+   | Portkey | `x-portkey-trace-id` | |
+   | xAI | `x-grok-conv-id` | |
+   | DashScope / Model Studio (Qwen Code) | body `metadata.sessionId`, apps API `input.session_id` | |
+   | Moonshot / Kimi (Kimi CLI) | body `prompt_cache_key`, on Kimi hosts only | |
+   | MiniMax (MiniMax Code) | `x-mavis-session-id` | |
+   | Tencent CodeBuddy | `x-conversation-id` | `x-parent-conversation-id`, `x-agent-type` |
+   | Xiaomi MiMo (MiMo Code) | `x-session-affinity` from MiMo Code | `x-parent-session-id` |
+   | Any host (opencode, Crush, Pi, Goose) | `x-session-id`, `agent-session-id` | `x-parent-session-id` |
+
+   Only if none of these is found are approximate keys used:
+   - body `prompt_cache_key` (OpenAI-compatible APIs)
+   - the `x-session-affinity` header
+   - a bare UUID in Anthropic `metadata.user_id` (Kimi CLI)
+   - Volcengine Ark `session.id` / `context_id`
+
+   Some providers have no session field of their own: Vercel AI Gateway, Cloudflare AI Gateway, Groq, Together, Bedrock, DeepSeek, Z.ai/GLM, Baidu Qianfan, Hunyuan, StepFun and SiliconFlow. Their `user` / `user_id` fields identify end users, not sessions. Requests to them are still grouped by whatever the client sends. For example, Z.ai's ZCode and iFlow CLI send `x-session-id` and `session-id`. ZCode subagents get their own session id with no parent pointer, so they show up as separate groups.
+2. **Subagents:** requests with a subagent id join that subagent's own session, linked to the group.
+3. **Prefix chain:** any other request joins the most recent session whose latest request's messages are a prefix of its own messages. With an agent session id, only that group's sessions are candidates. Without one, candidates must also have the same provider and set of tool names, and have been active in the last 24 hours.
    - Messages are canonicalized first. `cache_control` markers and thinking blocks are ignored, and tool calls are compared by id.
    - A rewritten last message is tolerated.
-3. **OpenAI Responses `previous_response_id`:** these requests are linked to the request that produced that response, and its history is stitched in. The latest view still shows the whole conversation.
-4. Anything else starts a new session. Compaction, rewinds, subagents and one-off calls (such as title generation) each get their own session. Use **Hide one-off calls** to hide single-request sessions.
+4. **OpenAI Responses `previous_response_id`:** these requests are linked to the request that produced that response, and its history is stitched in. The latest view still shows the whole conversation.
+5. Anything else starts a new session. Compaction, rewinds, subagents and one-off calls (such as title generation) each get their own session.
+
+In a group, the longest non-subagent conversation is the main session and the only one listed in the sidebar. Its subagents, side calls and other threads (such as the one started after `/clear`) are linked from its header, and each links back. Deleting the main session deletes the whole group. Use **Hide one-off calls** to hide single-request sessions.
 
 `Authorization`, `x-api-key`, `x-goog-api-key` and cookies are redacted in the addon before anything leaves mitmproxy.
 
@@ -150,6 +181,7 @@ Layout:
 
 - `addon/`: the mitmproxy addon.
 - `server/parsers/`: one normalizer per API, all producing a common block model.
+- `server/providers/`: one module per provider or router, reading the session id its clients declare.
 - `server/sessions.ts`: the grouping logic.
 - `server/store.ts`: SQLite storage.
 - `web/`: the React UI, bundled by Bun's HTML imports.

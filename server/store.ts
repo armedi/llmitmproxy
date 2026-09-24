@@ -8,7 +8,10 @@ export interface SessionRow {
   title: string;
   provider: string;
   model: string | null;
-  hint: string | null;
+  /** The agent's own session id; sessions sharing it form one group. */
+  session_id: string | null;
+  agent_id: string | null;
+  agent_name: string | null;
   fingerprint: string;
   created_at: number;
   updated_at: number;
@@ -21,6 +24,9 @@ export interface SessionRow {
   cache_write_tokens: number;
   pending: number;
   last_error: string | null;
+  /** The group's main session, when this one is a subagent or side call. */
+  parent_id: number | null;
+  child_count: number;
 }
 
 export interface RequestSummary {
@@ -53,7 +59,9 @@ export class Store {
         title TEXT NOT NULL,
         provider TEXT NOT NULL,
         model TEXT,
-        hint TEXT,
+        session_id TEXT,
+        agent_id TEXT,
+        agent_name TEXT,
         fingerprint TEXT NOT NULL,
         created_at REAL NOT NULL,
         updated_at REAL NOT NULL,
@@ -67,6 +75,7 @@ export class Store {
         last_error TEXT
       );
       CREATE INDEX IF NOT EXISTS sessions_match ON sessions(fingerprint, updated_at);
+      CREATE INDEX IF NOT EXISTS sessions_group ON sessions(session_id, agent_id, updated_at);
       CREATE TABLE IF NOT EXISTS requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         flow_id TEXT NOT NULL UNIQUE,
@@ -219,43 +228,62 @@ export class Store {
 
   private findOrCreateSession(n: Normalized, hashes: string[], ts: number): number {
     const fp = fingerprint(n);
-    const hint = n.sessionHint ?? null;
-    const candidates = this.db
-      .query<{ id: number; msg_hashes: string }, [string, string | null, number]>(
-        `SELECT s.id, r.msg_hashes FROM sessions s JOIN requests r ON r.id = s.latest_request_id
-         WHERE s.fingerprint = ? AND s.hint IS ? AND s.updated_at > ?
-         ORDER BY s.updated_at DESC LIMIT 100`,
-      )
-      .all(fp, hint, ts - SESSION_WINDOW_S)
-      .map((r) => ({ sessionId: r.id, hashes: JSON.parse(r.msg_hashes) as string[] }));
-    const match = matchSession(candidates, hashes);
-    if (match !== undefined) return match;
+    const sid = n.sessionId ?? null;
+    const agent = n.agentId ?? null;
+    if (sid && agent) {
+      // A subagent id names its thread outright.
+      const row = this.db
+        .query<{ id: number }, [string, string]>("SELECT id FROM sessions WHERE session_id = ? AND agent_id = ? ORDER BY updated_at DESC LIMIT 1")
+        .get(sid, agent);
+      if (row) return row.id;
+    } else {
+      // With an explicit session id the tool set may change mid-conversation, so only the id scopes the search.
+      const candidates = this.db
+        .query<{ id: number; msg_hashes: string }, [string | null, string | null, string, number]>(
+          `SELECT s.id, r.msg_hashes FROM sessions s JOIN requests r ON r.id = s.latest_request_id
+           WHERE s.session_id IS ? AND s.agent_id IS NULL AND (? IS NOT NULL OR (s.fingerprint = ? AND s.updated_at > ?))
+           ORDER BY s.updated_at DESC LIMIT 100`,
+        )
+        .all(sid, sid, fp, ts - SESSION_WINDOW_S)
+        .map((r) => ({ sessionId: r.id, hashes: JSON.parse(r.msg_hashes) as string[] }));
+      const match = matchSession(candidates, hashes);
+      if (match !== undefined) return match;
+    }
     return Number(
       this.db
         .query(
-          `INSERT INTO sessions (title, provider, model, hint, fingerprint, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO sessions (title, provider, model, session_id, agent_id, agent_name, fingerprint, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(titleFor(n), n.provider, n.model ?? null, hint, fp, ts, ts).lastInsertRowid,
+        .run(titleFor(n), n.provider, n.model ?? null, sid, agent, n.agentName ?? null, fp, ts, ts).lastInsertRowid,
     );
   }
 
-  listSessions(limit = 500): SessionRow[] {
-    return this.db
-      .query<SessionRow, [number]>(
-        `SELECT s.*, (SELECT count(*) FROM requests r WHERE r.session_id = s.id AND r.state = 'pending') AS pending
-         FROM sessions s ORDER BY s.updated_at DESC LIMIT ?`,
+  /**
+   * Each group's main session is its longest non-subagent conversation; every other session
+   * with the same agent session id (subagents, side calls, threads started by /clear) is its child.
+   */
+  private sessionsQuery(where: string) {
+    return `WITH roots AS (
+        SELECT session_id, id AS root_id FROM (
+          SELECT session_id, id, row_number() OVER (PARTITION BY session_id ORDER BY agent_id IS NOT NULL, latest_msg_count DESC, request_count DESC, id) AS rn
+          FROM sessions WHERE session_id IS NOT NULL
+        ) WHERE rn = 1
       )
-      .all(limit);
+      SELECT s.*,
+        (SELECT count(*) FROM requests r WHERE r.session_id = s.id AND r.state = 'pending') AS pending,
+        CASE WHEN g.root_id = s.id THEN NULL ELSE g.root_id END AS parent_id,
+        CASE WHEN g.root_id = s.id THEN (SELECT count(*) - 1 FROM sessions c WHERE c.session_id = s.session_id) ELSE 0 END AS child_count
+      FROM sessions s LEFT JOIN roots g ON g.session_id = s.session_id
+      ${where}`;
+  }
+
+  listSessions(limit = 500): SessionRow[] {
+    return this.db.query<SessionRow, [number]>(this.sessionsQuery("ORDER BY s.updated_at DESC LIMIT ?")).all(limit);
   }
 
   getSession(id: number): SessionRow | null {
-    return this.db
-      .query<SessionRow, [number]>(
-        `SELECT s.*, (SELECT count(*) FROM requests r WHERE r.session_id = s.id AND r.state = 'pending') AS pending
-         FROM sessions s WHERE s.id = ?`,
-      )
-      .get(id);
+    return this.db.query<SessionRow, [number]>(this.sessionsQuery("WHERE s.id = ?")).get(id);
   }
 
   listRequests(sessionId: number): RequestSummary[] {
@@ -280,8 +308,16 @@ export class Store {
     };
   }
 
-  deleteSession(id: number) {
-    this.db.query("DELETE FROM sessions WHERE id = ?").run(id);
+  /** Deleting a group's main session deletes its children too. Returns the deleted ids. */
+  deleteSession(id: number): number[] {
+    const s = this.getSession(id);
+    if (!s) return [];
+    const ids =
+      s.session_id && s.parent_id == null
+        ? this.db.query<{ id: number }, [string]>("SELECT id FROM sessions WHERE session_id = ?").all(s.session_id).map((r) => r.id)
+        : [id];
+    this.db.query(`DELETE FROM sessions WHERE id IN (${ids.map(() => "?").join(",")})`).run(...ids);
+    return ids;
   }
 
   clear() {

@@ -1,3 +1,4 @@
+import { identify } from "../providers";
 import type { IngestEvent, Normalized, NormalizedResponse, Provider } from "../types";
 import * as anthropic from "./anthropic";
 import * as gemini from "./gemini";
@@ -37,11 +38,9 @@ type Parser = {
 const parsers: Record<Exclude<Provider, "unknown">, Parser> = {
   anthropic: { ...anthropic, parseRequest: (r) => anthropic.parseRequest(r) },
   "openai-chat": { ...openaiChat, parseRequest: (r) => openaiChat.parseRequest(r) },
-  "openai-responses": { ...openaiResponses, parseRequest: (r, c) => openaiResponses.parseRequest(r, c.headers) },
+  "openai-responses": { ...openaiResponses, parseRequest: (r) => openaiResponses.parseRequest(r) },
   gemini: { ...gemini, parseRequest: (r, c) => gemini.parseRequest(r, c.url) },
 };
-
-const HEADER_HINTS = ["x-claude-code-session-id", "x-session-id", "session_id", "session-id", "conversation_id", "x-conversation-id"];
 
 export function normalizeRequest(ev: IngestEvent): Normalized {
   const reqText = bodyText(ev.request_body);
@@ -60,10 +59,7 @@ export function normalizeRequest(ev: IngestEvent): Normalized {
   } else {
     n = parsers[provider].parseRequest(req, { url: ev.url, headers });
   }
-  if (!n.sessionHint) {
-    const h = HEADER_HINTS.find((k) => headers[k]);
-    if (h) n.sessionHint = `hdr:${headers[h]}`;
-  }
+  Object.assign(n, identify(ev.url, headers, req));
   return n;
 }
 

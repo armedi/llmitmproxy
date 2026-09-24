@@ -48,8 +48,12 @@ export interface Normalized {
   tools: ToolDef[];
   messages: Message[];
   response?: NormalizedResponse;
-  /** Explicit session hint extracted from the request body, if any. */
-  sessionHint?: string;
+  /** The agent's own session id, as sent in a header or the request body. */
+  sessionId?: string;
+  /** Id of the subagent within that session, when the client sends one. */
+  agentId?: string;
+  /** The subagent's type or name, when the client sends one. */
+  agentName?: string;
   /** OpenAI Responses previous_response_id, used to chain sessions. */
   previousResponseId?: string;
 }
