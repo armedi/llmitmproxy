@@ -270,6 +270,21 @@ kbd {
   color: var(--color-ink);
   border-bottom-color: var(--color-accent);
 }
+/* Icons: Lucide, 16px, currentColor. A leading icon tightens the button's left padding. */
+button svg,
+.ghost-button svg,
+.error-banner svg,
+.search svg {
+  flex: none;
+}
+button:not(.icon):has(> svg:first-child),
+.ghost-button:has(> svg:first-child) {
+  padding-left: var(--space-2xs);
+}
+button.small:not(.icon):has(> svg:first-child),
+.ghost-button.small:has(> svg:first-child) {
+  padding-left: var(--space-3xs);
+}
 .copy {
   height: 1.25rem;
   padding: 0 var(--space-2xs);
@@ -283,6 +298,11 @@ kbd {
 .copy:hover {
   background: var(--color-paper-3);
   color: var(--color-ink);
+}
+.copy.icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-color: transparent;
 }
 .hover-only {
   opacity: 0;
@@ -512,8 +532,26 @@ body.resizing .resize-handle::after {
   border-bottom: var(--rule);
   flex: none;
 }
-.filters > input {
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--color-faint);
+}
+.search svg {
+  position: absolute;
+  left: var(--space-2xs);
+  pointer-events: none;
+}
+.search input {
   width: 100%;
+  padding-left: var(--space-lg);
+}
+.search:focus-within {
+  color: var(--color-ink-2);
+}
+input[type="search"]::-webkit-search-decoration {
+  appearance: none;
 }
 .filter-row {
   display: flex;
@@ -744,6 +782,7 @@ body.resizing .resize-handle::after {
 .ghost-button {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-3xs);
   height: var(--control-h);
   padding: 0 var(--space-xs);
   border-radius: var(--radius-md);
@@ -1171,10 +1210,16 @@ body.resizing .resize-handle::after {
   border-radius: var(--radius-md);
   padding: var(--space-2xs) var(--space-xs);
   margin: var(--space-3xs) 0 var(--space-2xs);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.error-banner svg {
+  margin-top: 1px;
 }
 
 /* Collapsible rows at the top: system prompt, tool definitions, parameters. */

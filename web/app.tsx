@@ -1,3 +1,4 @@
+import { Keyboard, Monitor, Moon, PanelLeftClose, PanelLeftOpen, Sun } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, useUpdates, type Session } from "./api";
@@ -19,6 +20,7 @@ function routeFromPath(): Route {
 }
 
 const THEME_LABEL = { system: "Auto", light: "Light", dark: "Dark" } as const;
+const THEME_ICON = { system: Monitor, light: Sun, dark: Moon } as const;
 
 function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -29,6 +31,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useStored("sidebar", true);
   const [help, setHelp] = useState(false);
   const [theme, cycleTheme] = useTheme();
+  const ThemeIcon = THEME_ICON[theme];
   const [confirmDialog, askConfirm] = useConfirm();
   const sidebar = useResizable("sidebarWidth", 340, 220, 520, "right");
   const now = useNow();
@@ -138,14 +141,19 @@ function App() {
               {connected ? "live" : "offline"}
             </span>
             <span className="spacer" />
-            <button className="ghost small" onClick={cycleTheme} title="Theme: follow the system, light or dark">
-              {THEME_LABEL[theme]}
+            <button
+              className="ghost small icon"
+              onClick={cycleTheme}
+              title={`Theme: ${THEME_LABEL[theme]}. Click to cycle system, light and dark`}
+              aria-label={`Theme: ${THEME_LABEL[theme]}`}
+            >
+              <ThemeIcon size={16} aria-hidden />
             </button>
             <button className="ghost small icon" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
-              ?
+              <Keyboard size={16} aria-hidden />
             </button>
             <button className="ghost small icon" onClick={() => setSidebarOpen(false)} title="Hide sidebar (b)" aria-label="Hide sidebar">
-              ⟨
+              <PanelLeftClose size={16} aria-hidden />
             </button>
           </header>
           <SessionList
@@ -169,7 +177,7 @@ function App() {
       <main className="main">
         {!sidebarOpen && (
           <button className="ghost small icon sidebar-show" onClick={() => setSidebarOpen(true)} title="Show sidebar (b)" aria-label="Show sidebar">
-            ⟩
+            <PanelLeftOpen size={16} aria-hidden />
           </button>
         )}
         {current ? (

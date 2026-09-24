@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { FindResult, FindState } from "./Conversation";
 
@@ -29,14 +30,14 @@ export function FindBar({ find, result, onChange, onClose }: Props) {
         }}
       />
       <span className="muted find-count">{find.query.trim() ? `${pos} / ${result.count}` : ""}</span>
-      <button className="ghost" onClick={() => step(-1)} disabled={!result.count} title="Previous (Shift+Enter)">
-        ↑
+      <button className="ghost" onClick={() => step(-1)} disabled={!result.count} title="Previous (Shift+Enter)" aria-label="Previous match">
+        <ChevronUp size={16} aria-hidden />
       </button>
-      <button className="ghost" onClick={() => step(1)} disabled={!result.count} title="Next (Enter)">
-        ↓
+      <button className="ghost" onClick={() => step(1)} disabled={!result.count} title="Next (Enter)" aria-label="Next match">
+        <ChevronDown size={16} aria-hidden />
       </button>
-      <button className="ghost" onClick={onClose} title="Close (Esc)">
-        ✕
+      <button className="ghost" onClick={onClose} title="Close (Esc)" aria-label="Close find">
+        <X size={16} aria-hidden />
       </button>
     </div>
   );

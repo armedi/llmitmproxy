@@ -1,3 +1,4 @@
+import { TriangleAlert } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { type Block, contextTokens, fmtCost, fmtDuration, fmtTokens, type RequestDetail, type RequestSummary, type ToolDef } from "../api";
 import { useKeys } from "../hooks";
@@ -162,9 +163,14 @@ function MessageView({ item, turns, sessionModel, onOpenRequest, detail }: ViewP
           )}
           <span className="spacer" />
           {turn && <TurnMeta turn={turn} sessionModel={sessionModel} onOpenRequest={onOpenRequest} />}
-          <Copy text={text} className="hover-only" />
+          <Copy text={text} label="Copy message text" className="hover-only" iconOnly />
         </div>
-        {error && <div className="error-banner">{error}</div>}
+        {error && (
+          <div className="error-banner">
+            <TriangleAlert size={16} aria-hidden />
+            <span>{error}</span>
+          </div>
+        )}
         {item.blocks.length > 0 ? (
           <Blocks blocks={item.blocks} prose live={item.response} />
         ) : (

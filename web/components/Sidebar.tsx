@@ -1,3 +1,4 @@
+import { ListFilter, Search } from "lucide-react";
 import { useState } from "react";
 import { fmtAgo, fmtCost, type Session } from "../api";
 import { groupStatus, STATUS_LABEL, sessionStatus, type Status } from "../status";
@@ -126,7 +127,10 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
   return (
     <>
       <div className="filters">
-        <input placeholder="Search sessions…" value={filters.q} onChange={(e) => set({ q: e.target.value })} />
+        <label className="search">
+          <Search size={16} aria-hidden />
+          <input type="search" placeholder="Search sessions…" aria-label="Search sessions" value={filters.q} onChange={(e) => set({ q: e.target.value })} />
+        </label>
         <div className="filter-row">
           <div className="seg" title="Group sessions by">
             {(["none", "client", "model", "provider"] as GroupBy[]).map((g) => (
@@ -137,7 +141,8 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
           </div>
           <span className="spacer" />
           <details className="menu filter-menu">
-            <summary className="ghost-button" title="Filters">
+            <summary className="ghost-button small" title="Filters">
+              <ListFilter size={16} aria-hidden />
               Filter{activeCount(filters) > 0 && <span className="filter-dot" />}
             </summary>
             <div className="menu-items filter-items">

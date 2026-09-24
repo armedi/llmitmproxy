@@ -1,3 +1,4 @@
+import { Download, PanelRight, Trash2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, contextTokens, fmtCost, fmtDuration, fmtSeconds, fmtTime, fmtTokens, type RequestDetail, type RequestSummary, type Session, type Usage } from "../api";
 import { useKeys, useResizable, useStored } from "../hooks";
@@ -103,9 +104,11 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
             <h1 title={session.title}>{session.title}</h1>
             <ExportMenu session={session} />
             <button className="ghost danger" onClick={onDelete} title="Delete this session (asks first)">
+              <Trash2 size={16} aria-hidden />
               Delete
             </button>
             <button className={`ghost ${showVitals ? "on" : ""}`} onClick={() => setShowVitals(!showVitals)} title="Session stats panel (v)">
+              <PanelRight size={16} aria-hidden />
               Stats
             </button>
           </div>
@@ -300,7 +303,10 @@ function ExportMenu({ session }: { session: Session }) {
   );
   return (
     <details className="menu" ref={ref}>
-      <summary className="ghost-button">Export</summary>
+      <summary className="ghost-button">
+        <Download size={16} aria-hidden />
+        Export
+      </summary>
       <div className="menu-items">
         {item(`/api/sessions/${session.id}/export?scope=latest`, "Latest request + response", "The full conversation, as sent")}
         {item(`/api/sessions/${session.id}/export?scope=all`, `All ${session.request_count} requests`, "Every raw request and response in the session")}
