@@ -57,10 +57,15 @@ function App() {
         setRoute({ session: null, request: null });
       } else if (u.type === "deleted") {
         const gone = new Set(u.ids);
+        // Losing a group member changes the rest of the group (its main session, child count, group cost).
+        const groups = new Set(sessions.filter((s) => gone.has(s.id) && s.session_id).map((s) => s.session_id));
+        if (sessions.some((s) => !gone.has(s.id) && groups.has(s.session_id))) reload();
         setSessions((s) => s.filter((x) => !gone.has(x.id)));
       } else if (u.type === "update" && u.session) {
-        // A new session in a group changes its main session's child count and group cost, so refetch.
-        if (u.session.session_id && (!sessions.some((s) => s.id === u.session.id) || u.session.parent_id != null)) reload();
+        // A new session in a group changes its main session's child count and group cost, and a child
+        // that outgrows the main session takes its place, so refetch.
+        const prev = sessions.find((s) => s.id === u.session.id);
+        if (u.session.session_id && (!prev || prev.parent_id !== u.session.parent_id || u.session.parent_id != null)) reload();
         setSessions((list) => [u.session, ...list.filter((s) => s.id !== u.session.id)].sort((a, b) => b.updated_at - a.updated_at));
         setTick((t) => ({ sessionId: u.session.id, n: t.n + 1 }));
       }

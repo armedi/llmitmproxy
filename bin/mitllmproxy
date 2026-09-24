@@ -19,7 +19,7 @@ Options for start:
                         Start mitmproxy with MITLLMPROXY_DB set to the same path.
       --retention <age> Delete captures older than this, by request time: e.g. 12h, 7d, 2w,
                         or 0/off to keep them forever (default 7d)
-      --dev             Enable hot reload / dev logging
+      --dev             Serve the UI with hot reload (Bun development mode)
   -h, --help            Show this help
 `);
 }

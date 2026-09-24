@@ -1,4 +1,5 @@
 import { mkdirSync } from "node:fs";
+import { isIP } from "node:net";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { downloadName, exportSession } from "./export";
@@ -33,6 +34,28 @@ export async function startServer(opts: StartOptions = {}) {
 
   const json = (data: unknown, status = 200) => Response.json(data, { status });
   const idParam = (req: { params: { id: string } }) => Number(req.params.id);
+  const bindHost = opts.host ?? "127.0.0.1";
+  // A web page can point its own hostname at 127.0.0.1 (DNS rebinding), which makes its requests
+  // same-origin; so only accept the names this server is really reached by.
+  const knownHost = (hostname: string) =>
+    hostname === "localhost" || hostname === bindHost || isIP(hostname.replace(/^\[|\]$/g, "")) !== 0;
+  // Browsers send Origin on cross-site requests; tools like the replay script send none.
+  // Without this, any web page could read the captures over /api and /ws or inject them via /ingest.
+  const trusted = (req: Request) => {
+    const url = new URL(req.url);
+    if (!knownHost(url.hostname)) return false;
+    const origin = req.headers.get("origin");
+    if (!origin) return true;
+    try {
+      return new URL(origin).host === url.host;
+    } catch {
+      return false;
+    }
+  };
+  const guard =
+    <R extends Request, A extends unknown[], T>(handler: (req: R, ...rest: A) => T) =>
+    (req: R, ...rest: A): T | Response =>
+      trusted(req) ? handler(req, ...rest) : new Response("forbidden", { status: 403 });
   const attachment = (data: unknown, filename: string) =>
     new Response(JSON.stringify(data, null, 2), {
       headers: { "content-type": "application/json", "content-disposition": `attachment; filename="${filename}"` },
@@ -46,9 +69,11 @@ export async function startServer(opts: StartOptions = {}) {
       ...(await uiRoutes(!!opts.dev)),
 
       "/ingest": {
-        POST: async (req) => {
-          const ev = (await req.json()) as IngestEvent;
+        POST: guard(async (req) => {
+          const ev = (await req.json().catch(() => null)) as IngestEvent | null;
           if (!ev?.flow_id || !ev.url) return json({ error: "invalid event" }, 400);
+          const before = cutoff();
+          if (before !== undefined && ev.started_at < before) return json({ ok: true, skipped: true });
           try {
             const { sessionId, requestId } = store.ingest(ev);
             server.publish("updates", JSON.stringify({ type: "update", session: store.getSession(sessionId), requestId, state: ev.state }));
@@ -57,36 +82,36 @@ export async function startServer(opts: StartOptions = {}) {
             console.error("ingest failed", ev.url, e);
             return json({ error: String(e) }, 500);
           }
-        },
+        }),
       },
 
       "/api/sessions": {
-        GET: () => json(store.listSessions()),
-        DELETE: () => {
+        GET: guard(() => json(store.listSessions())),
+        DELETE: guard(() => {
           store.clear();
           server.publish("updates", JSON.stringify({ type: "reset" }));
           return json({ ok: true });
-        },
+        }),
       },
       "/api/sessions/:id": {
-        DELETE: (req) => {
+        DELETE: guard((req) => {
           const ids = store.deleteSession(idParam(req));
           server.publish("updates", JSON.stringify({ type: "deleted", ids }));
           return json({ ok: true, ids });
-        },
+        }),
       },
-      "/api/sessions/:id/requests": (req) => json(store.listRequests(idParam(req))),
-      "/api/sessions/:id/export": (req) => {
+      "/api/sessions/:id/requests": guard((req) => json(store.listRequests(idParam(req)))),
+      "/api/sessions/:id/export": guard((req) => {
         const session = store.getSession(idParam(req));
         if (!session) return json({ error: "not found" }, 404);
         const scope = new URL(req.url).searchParams.get("scope") === "all" ? "all" : "latest";
         return attachment(exportSession(store, session, scope), downloadName(session, scope));
-      },
-      "/api/requests/:id": (req) => {
+      }),
+      "/api/requests/:id": guard((req) => {
         const r = store.getRequest(idParam(req));
         return r ? json(r) : json({ error: "not found" }, 404);
-      },
-      "/ws": (req, srv) => (srv.upgrade(req) ? undefined : new Response("upgrade failed", { status: 400 })),
+      }),
+      "/ws": guard((req: Request, srv: Bun.Server<undefined>) => (srv.upgrade(req) ? undefined : new Response("upgrade failed", { status: 400 }))),
     },
     websocket: {
       open: (ws) => {
@@ -114,7 +139,6 @@ export async function startServer(opts: StartOptions = {}) {
     }
   };
   drain();
-  setInterval(drain, 300);
 
   const prune = () => {
     const before = cutoff();
@@ -128,7 +152,12 @@ export async function startServer(opts: StartOptions = {}) {
     }
   };
   prune();
-  setInterval(prune, PRUNE_INTERVAL_MS);
+
+  // `bun --hot` re-runs this on every edit but keeps old timers running; stop the previous run's.
+  const hot = globalThis as { stopMitllmproxyTimers?: () => void };
+  hot.stopMitllmproxyTimers?.();
+  const timers = [setInterval(drain, 300), setInterval(prune, PRUNE_INTERVAL_MS)];
+  hot.stopMitllmproxyTimers = () => timers.forEach(clearInterval);
 
   console.log(`UI:        ${server.url}`);
   console.log(`database:  ${store.db.filename}`);
@@ -142,13 +171,14 @@ const UNITS: [string, number][] = [["w", 7 * 86400], ["d", 86400], ["h", 3600], 
 
 /** Parse a duration like `7d`, `12h`, `30m` or `2w` into seconds; `0` or `off` means keep forever. */
 export function parseDuration(text: string): number | undefined {
+  text = text.trim();
   if (text === "0" || text === "off") return 0;
-  const m = /^(\d+)([wdhms])$/.exec(text.trim());
+  const m = /^(\d+)([wdhms])$/.exec(text);
   const size = m && UNITS.find(([u]) => u === m[2])?.[1];
   return m && size && Number(m[1]) > 0 ? Number(m[1]) * size : undefined;
 }
 
 function formatDuration(seconds: number): string {
-  const [unit, size] = UNITS.find(([, s]) => seconds % s === 0)!;
+  const [unit, size] = UNITS.find(([, s]) => seconds % s === 0) ?? ["s", 1];
   return `${seconds / size}${unit}`;
 }
