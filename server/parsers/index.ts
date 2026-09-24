@@ -42,6 +42,16 @@ const parsers: Record<Exclude<Provider, "unknown">, Parser> = {
   gemini: { ...gemini, parseRequest: (r, c) => gemini.parseRequest(r, c.url) },
 };
 
+function modelFromURL(url: string): string | undefined {
+  const m = /\/models\/([^/:?]+):/.exec(url);
+  if (!m) return undefined;
+  try {
+    return decodeURIComponent(m[1]!);
+  } catch {
+    return m[1];
+  }
+}
+
 export function normalizeRequest(ev: IngestEvent): Normalized {
   const reqText = bodyText(ev.request_body);
   const req = tryJSON(reqText);
@@ -59,6 +69,8 @@ export function normalizeRequest(ev: IngestEvent): Normalized {
   } else {
     n = parsers[provider].parseRequest(req, { url: ev.url, headers });
   }
+  // Vertex AI's Claude endpoints name the model only in the path: …/models/<id>:rawPredict.
+  n.model ??= modelFromURL(ev.url);
   Object.assign(n, identify(ev.url, headers, req));
   return n;
 }

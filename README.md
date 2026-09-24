@@ -4,7 +4,7 @@ A live viewer for the LLM calls your agents make, captured through mitmproxy.
 
 Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Older requests are still available from the "Request N of N" picker and the vitals panel's request list.
 
-Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Both streaming (SSE) and non-streaming responses are supported.
+Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Claude on Vertex AI (`:rawPredict` / `:streamRawPredict`) is also supported. Both streaming (SSE) and non-streaming responses are supported.
 
 ```
 client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ bun server (:4545) ──ws──▶ UI
@@ -163,6 +163,15 @@ The capture patterns ship with mitllmproxy in `config/capture-urls.json` and are
   - A plain pattern is a glob matched against `host/path`, without the scheme or query. `*` matches anything, including `/`.
   - A pattern starting with `re:` is a regex searched in the full URL.
 - `ignore`: patterns that are never captured, e.g. `count_tokens`.
+
+Every provider in the table below has its hosts listed with the API endpoints it serves. Other hosts, such as a self-hosted LiteLLM or an internal gateway, are matched by endpoint path:
+
+- `…/chat/completions`
+- `…/v<N>/responses` and `…/v<N>/messages`. These need a version segment because the bare words are common in other APIs.
+- `…/openai/deployments/<name>/chat/completions|responses` (Azure-style)
+- `…:generateContent` and `…:streamGenerateContent`
+
+Amazon Bedrock's OpenAI-compatible endpoints are captured. Its native endpoints (`invoke`, `converse` and their streaming variants) aren't, because they stream in AWS's binary event-stream format rather than SSE.
 
 To support a new gateway such as LiteLLM, OpenRouter or an internal proxy, add its host and path to that file and release a new version. The provider is detected from the path, falling back to the shape of the request body.
 

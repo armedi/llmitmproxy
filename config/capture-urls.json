@@ -1,16 +1,31 @@
 {
   "urls": [
-    "api.anthropic.com/v1/messages",
-    "api.openai.com/v1/chat/completions",
-    "api.openai.com/v1/responses",
-    "chatgpt.com/backend-api/codex/responses",
-    "generativelanguage.googleapis.com/*:generateContent",
-    "generativelanguage.googleapis.com/*:streamGenerateContent",
-    "cloudcode-pa.googleapis.com/*:generateContent",
-    "cloudcode-pa.googleapis.com/*:streamGenerateContent",
-    "re:^https?://[^/]+(/[^?]*)?/v1/(messages|chat/completions|responses)(\\?|$)"
+    "re:^https?://([^/]+\\.)?(anthropic\\.com)(:\\d+)?/(.+/)?messages(\\?|$)",
+    "re:^https?://([^/]+\\.)?(openai\\.com|chatgpt\\.com)(:\\d+)?/(.+/)?(chat/completions|responses)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(openai\\.azure\\.com|cognitiveservices\\.azure\\.com|services\\.ai\\.azure\\.com)(:\\d+)?/(.+/)?(chat/completions|responses)(\\?|$)",
+    "re:^https?://([^/]+[.-])?(generativelanguage|cloudcode-pa|aiplatform)\\.googleapis\\.com(:\\d+)?/.*:(stream)?[gG]enerateContent(\\?|$)",
+    "re:^https?://([^/]+[.-])?aiplatform\\.googleapis\\.com(:\\d+)?/(.+/)?chat/completions(\\?|$)",
+    "re:^https?://([^/]+[.-])?aiplatform\\.googleapis\\.com(:\\d+)?/.*/publishers/anthropic/models/[^/:]+:(stream)?[rR]awPredict(\\?|$)",
+    "re:^https?://([^/]+\\.)?(x\\.ai)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(openrouter\\.ai|ai-gateway\\.vercel\\.sh|cloudflare\\.com|helicone\\.ai|portkey\\.ai)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(opencode\\.ai|kilocode\\.ai|kilo\\.ai|cline\\.bot)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(groq\\.com|together\\.xyz|together\\.ai|fireworks\\.ai|deepseek\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://bedrock-(runtime|mantle)\\.[^/]+\\.(amazonaws\\.com|api\\.aws)(:\\d+)?/(.+/)?(chat/completions|responses)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(aliyuncs\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(aliyuncs\\.com)(:\\d+)?/api/v1/apps/[^/]+/completion(\\?|$)",
+    "re:^https?://([^/]+\\.)?(moonshot\\.ai|moonshot\\.cn|kimi\\.com|minimax\\.io|minimaxi\\.com|xiaomimimo\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(minimax\\.io|minimaxi\\.com)(:\\d+)?/v1/text/chatcompletion_v2(\\?|$)",
+    "re:^https?://([^/]+\\.)?(volces\\.com|bytepluses\\.com|z\\.ai|bigmodel\\.cn|stepfun\\.com|stepfun\\.ai|siliconflow\\.cn|siliconflow\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(codebuddy\\.ai|codebuddy\\.cn|copilot\\.tencent\\.com|hunyuan\\.cloud\\.tencent\\.com|baidubce\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+
+    "re:^https?://[^/]+/(.+/)?chat/completions(\\?|$)",
+    "re:^https?://[^/]+/(.+/)?v\\d+[a-z0-9]*/(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://[^/]+/(.+/)?openai/deployments/[^/]+/(chat/completions|responses)(\\?|$)",
+    "re:^https?://[^/]+/.*:(stream)?[gG]enerateContent(\\?|$)"
   ],
   "ignore": [
-    "*/v1/messages/count_tokens*"
+    "*/messages/count_tokens*",
+    "*/threads/*/messages",
+    "*/conversations/*/messages"
   ]
 }

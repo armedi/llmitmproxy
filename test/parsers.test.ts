@@ -61,6 +61,20 @@ describe("anthropic", () => {
     });
     expect(err?.error).toBe("Overloaded");
   });
+
+  test("Vertex AI streamRawPredict: model comes from the URL", () => {
+    const [t1] = anthropicTurns();
+    const { model, ...body } = JSON.parse(t1!.request_body!.text!);
+    const n = parse({
+      ...t1!,
+      url: "https://us-east5-aiplatform.googleapis.com/v1/projects/p/locations/us-east5/publishers/anthropic/models/claude-sonnet-5@20260101:streamRawPredict",
+      request_body: { text: JSON.stringify({ ...body, anthropic_version: "vertex-2023-10-16" }) },
+    });
+    expect(n.provider).toBe("anthropic");
+    expect(n.model).toBe("claude-sonnet-5@20260101");
+    expect(n.response?.blocks.map((b) => b.type)).toEqual(["thinking", "text", "tool_use"]);
+    expect(n.response?.usage?.input).toBe(100);
+  });
 });
 
 describe("openai chat", () => {
