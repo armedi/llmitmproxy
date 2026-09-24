@@ -1,0 +1,59 @@
+#!/usr/bin/env bun
+import { resolve } from "node:path";
+import { parseArgs } from "node:util";
+
+const ROOT = resolve(import.meta.dir, "..");
+
+function printHelp() {
+  console.log(`Usage: mitllmproxy [start] [options]
+       mitllmproxy addon-path
+
+Commands:
+  start          Start the UI + ingest server (default)
+  addon-path     Print the absolute path to the mitmproxy addon
+
+Options for start:
+  -p, --port <number>   Server port (default 4545, or "port" in mitllmproxy.config.json)
+      --host <address>  Bind address (default 127.0.0.1)
+  -c, --config <path>   Path to mitllmproxy.config.json (default ./mitllmproxy.config.json)
+      --db <path>       Path to the SQLite database file
+      --dev             Enable hot reload / dev logging
+  -h, --help            Show this help
+`);
+}
+
+const [command, ...rest] = process.argv.slice(2);
+
+if (command === "addon-path") {
+  console.log(resolve(ROOT, "addon/mitllmproxy_addon.py"));
+} else if (command === "-h" || command === "--help") {
+  printHelp();
+} else {
+  const argv = command === "start" ? rest : process.argv.slice(2);
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      port: { type: "string", short: "p" },
+      host: { type: "string" },
+      config: { type: "string", short: "c" },
+      db: { type: "string" },
+      dev: { type: "boolean" },
+      help: { type: "boolean", short: "h" },
+    },
+    allowPositionals: false,
+  });
+
+  if (values.help) {
+    printHelp();
+    process.exit(0);
+  }
+
+  const { startServer } = await import("../server/index.ts");
+  await startServer({
+    port: values.port ? Number(values.port) : undefined,
+    host: values.host,
+    config: values.config ? resolve(process.cwd(), values.config) : undefined,
+    db: values.db ? resolve(process.cwd(), values.db) : undefined,
+    dev: values.dev,
+  });
+}

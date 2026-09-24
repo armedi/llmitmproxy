@@ -1,11 +1,20 @@
 {
   "name": "mitllmproxy",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "bin": {
+    "mitllmproxy": "./bin/mitllmproxy.ts"
+  },
+  "files": [
+    "bin",
+    "server",
+    "web",
+    "addon",
+    "mitllmproxy.config.json"
+  ],
   "scripts": {
-    "start": "NODE_ENV=production bun server/index.ts",
-    "dev": "bun --hot server/index.ts",
+    "start": "bun bin/mitllmproxy.ts",
+    "dev": "bun --hot bin/mitllmproxy.ts --dev",
     "replay": "bun scripts/replay.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

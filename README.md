@@ -21,8 +21,16 @@ The addon uses only the standard library, so nothing needs to be installed into 
 ## Run
 
 ```sh
-bun install
-bun start            # UI + ingest server on http://127.0.0.1:4545
+npm i -g mitllmproxy
+mitllmproxy                 # UI + ingest server on http://127.0.0.1:4545
+```
+
+Or without installing globally: `bunx mitllmproxy` / `npx mitllmproxy`.
+
+Everything is configurable via flags — run `mitllmproxy --help` for the full list:
+
+```sh
+mitllmproxy --port 5000 --config ./my-config.json --db ./my.db
 ```
 
 mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmproxy's own docs:
@@ -33,19 +41,19 @@ mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmpro
 
 ### Load the addon
 
-Load `addon/mitllmproxy_addon.py` into mitmproxy with its `scripts` option. Use the absolute path to the file:
+`mitllmproxy addon-path` prints the absolute path to the bundled `mitllmproxy_addon.py`, wherever npm installed it. Load it into mitmproxy with its `scripts` option:
 
 - **Every start (recommended):** add it to `~/.mitmproxy/config.yaml`. See [mitmproxy's options docs](https://docs.mitmproxy.org/stable/concepts/options/).
 
   ```yaml
   scripts:
-    - /path/to/mitllmproxy/addon/mitllmproxy_addon.py
+    - /path/to/mitllmproxy_addon.py   # output of `mitllmproxy addon-path`
   ```
 
-- **One run:** pass `-s /path/to/mitllmproxy/addon/mitllmproxy_addon.py` to `mitmdump`, `mitmweb` or `mitmproxy`.
+- **One run:** `mitmdump -s "$(mitllmproxy addon-path)"` (also works with `mitmweb`/`mitmproxy`).
 - **While it's running:** in mitmweb, go to Options → Edit Options → `scripts`. In the mitmproxy console, run `:set scripts=/path/...`. This replaces any scripts already set, so list those in the same command.
 
-Only flows that arrive after the addon loads are captured. The addon reads `MITLLMPROXY_URL` and `MITLLMPROXY_CONFIG` from the environment of the mitmproxy process, not from your shell. The defaults (port 4545 and this repo's `mitllmproxy.config.json`) work without setting either one.
+Only flows that arrive after the addon loads are captured. The addon reads `MITLLMPROXY_URL` and `MITLLMPROXY_CONFIG` from the environment of the mitmproxy process, not from your shell — these are unavoidable since mitmproxy loads the addon in its own Python process, not through the `mitllmproxy` CLI. The defaults (port 4545 and the addon's own `mitllmproxy.config.json`) work without setting either one.
 
 ### Point clients at the proxy
 
@@ -128,10 +136,12 @@ The dev server runs alongside `bun start` without touching it:
 | UI       | :4545            | :4546                |
 | Database | `mitllmproxy.db` | `mitllmproxy-dev.db` |
 
+Both are just `bin/mitllmproxy.ts` with different flags — see `package.json`'s `start`/`dev` scripts.
+
 To send real traffic to the dev build, run a second mitmproxy on another port with the addon pointed at the dev server:
 
 ```sh
-MITLLMPROXY_URL=http://127.0.0.1:4546/ingest mitmdump -p 9080 -s addon/mitllmproxy_addon.py
+MITLLMPROXY_URL=http://127.0.0.1:4546/ingest mitmdump -p 9080 -s "$(bun bin/mitllmproxy.ts addon-path)"
 ```
 
 Both servers share `mitllmproxy.config.json`, so filter edits in either UI apply to both.
