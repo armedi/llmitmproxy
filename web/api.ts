@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import type { Normalized, Usage } from "../server/types";
 
 export type { Block, Message, Normalized, ToolDef, Usage } from "../server/types";
@@ -84,8 +84,8 @@ export const api = {
 
 /** Subscribe to live updates, reconnecting with backoff. */
 export function useUpdates(onUpdate: (u: Update) => void, onStatus: (connected: boolean) => void) {
-  const cb = useRef({ onUpdate, onStatus });
-  cb.current = { onUpdate, onStatus };
+  const update = useEffectEvent(onUpdate);
+  const status = useEffectEvent(onStatus);
   useEffect(() => {
     let ws: WebSocket | undefined;
     let retry = 500;
@@ -95,11 +95,11 @@ export function useUpdates(onUpdate: (u: Update) => void, onStatus: (connected: 
       ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
       ws.onopen = () => {
         retry = 500;
-        cb.current.onStatus(true);
+        status(true);
       };
-      ws.onmessage = (e) => cb.current.onUpdate(JSON.parse(e.data));
+      ws.onmessage = (e) => update(JSON.parse(e.data));
       ws.onclose = () => {
-        cb.current.onStatus(false);
+        status(false);
         if (!stopped) timer = setTimeout(connect, (retry = Math.min(retry * 2, 8000)));
       };
     };

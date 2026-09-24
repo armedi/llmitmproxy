@@ -139,11 +139,11 @@ export function LazyDetails({
   [k: `data-${string}`]: string | undefined;
 }) {
   const force = useContext(ForceOpen);
-  const [seen, setSeen] = useState(!!open);
+  const [seen, setSeen] = useState(false);
   return (
     <details className={className} id={id} open={force || open || undefined} onToggle={(e) => e.currentTarget.open && setSeen(true)} {...data}>
       <summary>{summary}</summary>
-      {(seen || force) && children}
+      {(seen || open || force) && children}
     </details>
   );
 }

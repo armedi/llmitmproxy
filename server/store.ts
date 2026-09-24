@@ -461,7 +461,8 @@ export class Store {
         )
         .all(...affected)
         .map((r) => r.id);
-      const updated = affected.filter((id) => !deleted.includes(id));
+      const gone = new Set(deleted);
+      const updated = affected.filter((id) => !gone.has(id));
       if (updated.length) {
         // Same "latest" rule as ingest: the longest conversation, the newest on ties.
         this.db

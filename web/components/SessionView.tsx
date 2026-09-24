@@ -261,11 +261,13 @@ function Related({ session, parent, children, onSelect }: Pick<Props, "session" 
       <summary className="muted">{[...counts].map(([k, n]) => `${n} ${k}${n === 1 ? "" : "s"}`).join(" · ")}</summary>
       <ul>
         {children.map((c) => (
-          <li key={c.id} onClick={() => onSelect(c.id)}>
-            {c.pending > 0 && <span className="spinner" />}
-            <span className={`chip ${c.agent_id ? "agent" : ""}`}>{kindLabel(c)}</span>
-            <span className="related-title">{c.title}</span>
-            <span className="muted">{c.request_count} req</span>
+          <li key={c.id}>
+            <button onClick={() => onSelect(c.id)}>
+              {c.pending > 0 && <span className="spinner" />}
+              <span className={`chip ${c.agent_id ? "agent" : ""}`}>{kindLabel(c)}</span>
+              <span className="related-title">{c.title}</span>
+              <span className="muted">{c.request_count} req</span>
+            </button>
           </li>
         ))}
       </ul>

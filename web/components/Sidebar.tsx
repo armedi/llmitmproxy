@@ -274,43 +274,37 @@ interface RowProps {
 
 function Row({ s, status, active, inGroup, now, kids = 0, open, onToggle, onSelect, child, showClient, cost }: RowProps) {
   return (
-    <div
-      className={`s-row ${active ? "active" : ""} ${inGroup && !active ? "in-group" : ""} ${child ? "child" : ""}`}
-      role="button"
-      tabIndex={0}
-      aria-current={active || undefined}
-      onClick={() => onSelect(s.id)}
-      onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && onSelect(s.id)}
-    >
+    <div className={`s-row ${active ? "active" : ""} ${inGroup && !active ? "in-group" : ""} ${child ? "child" : ""}`}>
       <span className="s-tree">
         {kids > 0 && (
           <button
             className="chev"
             title={open ? "Hide subagents" : "Show subagents and side calls"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle?.();
-            }}
+            aria-label={open ? "Hide subagents" : "Show subagents and side calls"}
+            aria-expanded={open}
+            onClick={onToggle}
           >
             {open ? "▾" : "▸"}
           </button>
         )}
       </span>
-      <span className={`status-dot ${status}`} title={STATUS_LABEL[status]} />
-      <span className="s-body">
-        <span className="s-title">
-          {child && <span className={`chip kind ${s.agent_id ? "agent" : ""}`}>{kindLabel(s)}</span>}
-          {s.title}
+      <button className="s-main" aria-current={active || undefined} onClick={() => onSelect(s.id)}>
+        <span className={`status-dot ${status}`} title={STATUS_LABEL[status]} />
+        <span className="s-body">
+          <span className="s-title">
+            {child && <span className={`chip kind ${s.agent_id ? "agent" : ""}`}>{kindLabel(s)}</span>}
+            {s.title}
+          </span>
+          <span className="s-meta">
+            {!child && <span className="s-model">{s.model ?? PROVIDER_LABEL[s.provider]}</span>}
+            <span>{s.request_count} req</span>
+            {kids > 0 && <span title="Subagents and side calls">+{kids} sub</span>}
+            {cost > 0 && <span title={kids ? "Estimated cost, subagents included" : "Estimated cost"}>{fmtCost(cost)}</span>}
+            <span className="ago">{fmtAgo(s.updated_at, now)}</span>
+          </span>
         </span>
-        <span className="s-meta">
-          {!child && <span className="s-model">{s.model ?? PROVIDER_LABEL[s.provider]}</span>}
-          <span>{s.request_count} req</span>
-          {kids > 0 && <span title="Subagents and side calls">+{kids} sub</span>}
-          {cost > 0 && <span title={kids ? "Estimated cost, subagents included" : "Estimated cost"}>{fmtCost(cost)}</span>}
-          <span className="ago">{fmtAgo(s.updated_at, now)}</span>
-        </span>
-      </span>
-      {showClient && !child && s.client && <ClientTag client={s.client} />}
+        {showClient && !child && s.client && <ClientTag client={s.client} />}
+      </button>
     </div>
   );
 }

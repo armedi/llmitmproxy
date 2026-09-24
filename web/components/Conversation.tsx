@@ -65,7 +65,7 @@ export function Conversation({ detail, requests, sessionModel, focused, find, on
     onFind({ count: matches.length, marks });
     if (current >= 0) el.querySelector(`[data-item="${current}"]`)?.scrollIntoView({ block: "center" });
     highlight(el, q, current);
-  }, [matches, current, q]);
+  }, [matches, current, q, onFind]);
   useEffect(() => () => highlight(null, "", -1), []);
 
   // ---- j/k navigation ----

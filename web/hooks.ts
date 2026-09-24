@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 
 /** State persisted in localStorage under `key`. */
 export function useStored<T>(key: string, initial: T): [T, (v: T | ((prev: T) => T)) => void] {
@@ -54,18 +54,16 @@ export function isTyping(e: KeyboardEvent): boolean {
  * A handler returning false lets the event through (e.g. to the browser).
  */
 export function useKeys(bindings: Record<string, (e: KeyboardEvent) => boolean | void>, enabled = true) {
-  const ref = useRef(bindings);
-  ref.current = bindings;
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    const mod = e.metaKey || e.ctrlKey;
+    const key = mod ? `mod+${e.key.toLowerCase()}` : e.altKey ? "" : e.key;
+    const fn = bindings[key];
+    if (!fn) return;
+    if (!mod && key !== "Escape" && isTyping(e)) return;
+    if (fn(e) !== false) e.preventDefault();
+  });
   useEffect(() => {
     if (!enabled) return;
-    const onKey = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      const key = mod ? `mod+${e.key.toLowerCase()}` : e.altKey ? "" : e.key;
-      const fn = ref.current[key];
-      if (!fn) return;
-      if (!mod && key !== "Escape" && isTyping(e)) return;
-      if (fn(e) !== false) e.preventDefault();
-    };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, [enabled]);

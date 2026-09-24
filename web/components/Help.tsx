@@ -1,3 +1,5 @@
+import { Modal } from "./Modal";
+
 const SHORTCUTS: [string, string][] = [
   ["j / k", "Next / previous message"],
   ["J / K", "Next / previous user prompt"],
@@ -15,27 +17,25 @@ const SHORTCUTS: [string, string][] = [
 
 export function Help({ onClose }: { onClose: () => void }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" role="dialog" aria-label="Keyboard shortcuts" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2>Keyboard shortcuts</h2>
-          <button className="ghost" onClick={onClose}>
-            Close
-          </button>
-        </div>
-        <table className="shortcuts">
-          <tbody>
-            {SHORTCUTS.map(([k, d]) => (
-              <tr key={k}>
-                <td>
-                  <kbd>{k}</kbd>
-                </td>
-                <td>{d}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Modal aria-label="Keyboard shortcuts" onClose={onClose}>
+      <div className="modal-head">
+        <h2>Keyboard shortcuts</h2>
+        <button className="ghost" onClick={onClose}>
+          Close
+        </button>
       </div>
-    </div>
+      <table className="shortcuts">
+        <tbody>
+          {SHORTCUTS.map(([k, d]) => (
+            <tr key={k}>
+              <td>
+                <kbd>{k}</kbd>
+              </td>
+              <td>{d}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Modal>
   );
 }

@@ -95,7 +95,18 @@ function Container({ name, value, depth }: { name: React.ReactNode; value: objec
 
   return (
     <div className="jt-node">
-      <div className="jt-row jt-toggle" onClick={() => setOpen(!open)}>
+      <div
+        className="jt-row jt-toggle"
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          setOpen(!open);
+        }}
+      >
         <span className="jt-caret">{open ? "▾" : "▸"}</span>
         {name}
         <span className="jt-summary">{summary}</span>

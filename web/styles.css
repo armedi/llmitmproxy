@@ -617,16 +617,38 @@ input[type="search"]::-webkit-search-decoration {
 .s-row {
   position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-xs) var(--space-2xs) var(--space-3xs);
-  cursor: pointer;
+  padding-left: var(--space-3xs);
   transition: background-color var(--dur-short) var(--ease-out);
 }
 .s-row:hover {
   background: var(--color-paper-3);
 }
-.s-row:focus-visible {
+/* The row's main button fills everything right of the chevron, so the whole row stays clickable. */
+.s-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--space-2xs);
+  height: auto;
+  padding: var(--space-2xs) var(--space-xs) var(--space-2xs) var(--space-2xs);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font-weight: inherit;
+  text-align: left;
+  white-space: normal;
+  transition: none;
+}
+.s-main:hover {
+  background: none;
+}
+.s-main:active {
+  transform: none;
+}
+.s-main:focus-visible {
   outline-offset: -2px;
 }
 .s-row.active {
@@ -644,13 +666,19 @@ input[type="search"]::-webkit-search-decoration {
 }
 .s-row.child {
   padding-left: var(--space-md);
+  font-size: var(--text-xs);
+}
+.s-row.child .s-main {
   padding-top: var(--space-3xs);
   padding-bottom: var(--space-3xs);
-  font-size: var(--text-xs);
 }
 .s-tree {
   width: 14px;
   flex: none;
+  padding-top: var(--space-2xs);
+}
+.s-row.child .s-tree {
+  padding-top: var(--space-3xs);
 }
 .chev {
   width: 14px;
@@ -743,7 +771,7 @@ input[type="search"]::-webkit-search-decoration {
   margin-right: var(--space-3xs);
   vertical-align: 1px;
 }
-.s-row > .client-tag {
+.s-main > .client-tag {
   margin-top: var(--space-4xs);
 }
 .sidebar-foot {
@@ -984,17 +1012,27 @@ input[type="search"]::-webkit-search-decoration {
   border: var(--rule);
   border-radius: var(--radius-md);
 }
-.related li {
+.related li button {
   display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
   gap: var(--space-2xs);
-  align-items: center;
   padding: var(--space-3xs) var(--space-2xs);
-  cursor: pointer;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font-weight: 400;
+  text-align: left;
+}
+.related li button:active {
+  transform: none;
 }
 .related li + li {
   border-top: var(--rule);
 }
-.related li:hover {
+.related li button:hover {
   background: var(--color-paper-3);
 }
 .related-title {
@@ -2267,26 +2305,23 @@ code.tool-name[class*="cat-"] {
 }
 
 /* ---------- modals ---------- */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-scrim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-sm);
-  z-index: 50;
-}
 .modal {
   background: var(--color-paper);
+  color: inherit;
   border: 1px solid var(--color-rule-2);
   border-radius: var(--radius-lg);
-  padding: var(--space-sm) var(--space-md) var(--space-md);
+  padding: 0;
   box-shadow: 0 16px 48px var(--color-shadow);
   width: 460px;
-  max-width: 100%;
+  max-width: calc(100vw - 2 * var(--space-sm));
   max-height: calc(100vh - 2 * var(--space-sm));
   overflow: auto;
+}
+.modal::backdrop {
+  background: var(--color-scrim);
+}
+.modal-body {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
 }
 .modal h2 {
   font-family: var(--font-display);

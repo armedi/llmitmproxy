@@ -56,7 +56,8 @@ function App() {
         setSessions([]);
         setRoute({ session: null, request: null });
       } else if (u.type === "deleted") {
-        setSessions((s) => s.filter((x) => !u.ids.includes(x.id)));
+        const gone = new Set(u.ids);
+        setSessions((s) => s.filter((x) => !gone.has(x.id)));
       } else if (u.type === "update" && u.session) {
         // A new session in a group changes its main session's child count and group cost, so refetch.
         if (u.session.session_id && (!sessions.some((s) => s.id === u.session.id) || u.session.parent_id != null)) reload();

@@ -19,6 +19,7 @@ export function FindBar({ find, result, onChange, onClose }: Props) {
     <div className="find-bar">
       <input
         ref={input}
+        aria-label="Find in session"
         placeholder="Find in session (includes collapsed tool calls)"
         value={find.query}
         onChange={(e) => onChange({ query: e.target.value, cursor: 0 })}
