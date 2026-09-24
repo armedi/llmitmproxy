@@ -9,14 +9,14 @@ function printHelp() {
        mitllmproxy addon-path
 
 Commands:
-  start          Start the UI + ingest server (default)
+  start          Start the UI server; imports what the addon captured (default)
   addon-path     Print the absolute path to the mitmproxy addon
 
 Options for start:
-  -p, --port <number>   Server port (default 4545, or "port" in mitllmproxy.config.json)
+  -p, --port <number>   Server port (default 4545)
       --host <address>  Bind address (default 127.0.0.1)
-  -c, --config <path>   Path to mitllmproxy.config.json (default ./mitllmproxy.config.json)
-      --db <path>       Path to the SQLite database file
+      --db <path>       Path to the SQLite database file (default ~/.mitllmproxy/mitllmproxy.db).
+                        Start mitmproxy with MITLLMPROXY_DB set to the same path.
       --dev             Enable hot reload / dev logging
   -h, --help            Show this help
 `);
@@ -35,7 +35,6 @@ if (command === "addon-path") {
     options: {
       port: { type: "string", short: "p" },
       host: { type: "string" },
-      config: { type: "string", short: "c" },
       db: { type: "string" },
       dev: { type: "boolean" },
       help: { type: "boolean", short: "h" },
@@ -52,7 +51,6 @@ if (command === "addon-path") {
   await startServer({
     port: values.port ? Number(values.port) : undefined,
     host: values.host,
-    config: values.config ? resolve(process.cwd(), values.config) : undefined,
     db: values.db ? resolve(process.cwd(), values.db) : undefined,
     dev: values.dev,
   });

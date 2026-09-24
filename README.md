@@ -7,8 +7,10 @@ Agents resend the whole conversation on every turn, so mitllmproxy groups those 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Both streaming (SSE) and non-streaming responses are supported.
 
 ```
-client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──POST /ingest──▶ bun server (:4545) ──ws──▶ UI
+client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ bun server (:4545) ──ws──▶ UI
 ```
+
+The addon doesn't talk to the server. It queues each captured request as a JSON file in the spool directory next to the database (`<db>-spool/`). The server imports and deletes those files when it starts and every 300 ms while it runs. So capturing works whether or not the server is up: keep mitmproxy running and start the server only when you want the UI, and everything captured in the meantime shows up. The spool is plain files rather than SQLite because mitmproxy's binary builds don't ship Python's `sqlite3` module. Files that fail to import are renamed to `*.failed` and left in place for inspection.
 
 ## Why an addon (and not mitmweb's API)
 
@@ -22,15 +24,15 @@ The addon uses only the standard library, so nothing needs to be installed into 
 
 ```sh
 npm i -g mitllmproxy
-mitllmproxy                 # UI + ingest server on http://127.0.0.1:4545
+mitllmproxy                 # UI server on http://127.0.0.1:4545
 ```
 
 Or without installing globally: `bunx mitllmproxy` / `npx mitllmproxy`.
 
-Everything is configurable via flags — run `mitllmproxy --help` for the full list:
+The server's port, bind address and database are set with flags. Run `mitllmproxy --help` for the full list:
 
 ```sh
-mitllmproxy --port 5000 --config ./my-config.json --db ./my.db
+mitllmproxy --port 5000 --db ./my.db
 ```
 
 mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmproxy's own docs:
@@ -53,7 +55,7 @@ mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmpro
 - **One run:** `mitmdump -s "$(mitllmproxy addon-path)"` (also works with `mitmweb`/`mitmproxy`).
 - **While it's running:** in mitmweb, go to Options → Edit Options → `scripts`. In the mitmproxy console, run `:set scripts=/path/...`. This replaces any scripts already set, so list those in the same command.
 
-Only flows that arrive after the addon loads are captured. The addon reads `MITLLMPROXY_URL` and `MITLLMPROXY_CONFIG` from the environment of the mitmproxy process, not from your shell — these are unavoidable since mitmproxy loads the addon in its own Python process, not through the `mitllmproxy` CLI. The defaults (port 4545 and the addon's own `mitllmproxy.config.json`) work without setting either one.
+Only flows that arrive after the addon loads are captured. Captured data lives in `~/.mitllmproxy/`: the database `mitllmproxy.db` and the addon's spool `mitllmproxy.db-spool/`. If you start the server with `--db`, start mitmproxy with `MITLLMPROXY_DB` set to the same absolute path, since the spool directory is derived from the database path. The addon reads `MITLLMPROXY_DB` from the environment of the mitmproxy process, not from your shell, because mitmproxy loads the addon in its own Python process rather than through the `mitllmproxy` CLI.
 
 ### Point clients at the proxy
 
@@ -69,7 +71,7 @@ export SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.pem
 export NODE_EXTRA_CA_CERTS=~/.mitmproxy/mitmproxy-ca-cert.pem
 ```
 
-`NO_PROXY` keeps local traffic, such as the addon posting to the viewer, off the proxy. If mitmproxy stops, the tools that respect these variables lose network access until it's back or you `unset HTTP_PROXY HTTPS_PROXY`.
+`NO_PROXY` keeps local traffic, such as your browser opening the viewer, off the proxy. If mitmproxy stops, the tools that respect these variables lose network access until it's back or you `unset HTTP_PROXY HTTPS_PROXY`.
 
 To route a single client instead:
 
@@ -97,17 +99,16 @@ To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch 
 
 JSON bodies are included as parsed objects. Streamed (SSE) responses stay as the raw event-stream text. Auth headers are already redacted. The same exports are available from `GET /api/sessions/:id/export?scope=latest|all`.
 
-## Configure which URLs are captured
+## Which URLs are captured
 
-`mitllmproxy.config.json` (you can also edit it from **Filters** in the UI):
+The capture patterns ship with mitllmproxy in `config/capture-urls.json` and aren't user-configurable. The addon reads them once when it loads.
 
 - `urls`: only POST requests matching one of these are captured.
   - A plain pattern is a glob matched against `host/path`, without the scheme or query. `*` matches anything, including `/`.
   - A pattern starting with `re:` is a regex searched in the full URL.
 - `ignore`: patterns that are never captured, e.g. `count_tokens`.
-- `port`, `db`: the server port and the SQLite file.
 
-The addon reloads the file within a second of it changing, so you don't need to restart mitmproxy. To add a gateway such as LiteLLM, OpenRouter or an internal proxy, add its host and path. The provider is detected from the path, falling back to the shape of the request body.
+To support a new gateway such as LiteLLM, OpenRouter or an internal proxy, add its host and path to that file and release a new version. The provider is detected from the path, falling back to the shape of the request body.
 
 ## How sessions are grouped
 
@@ -165,21 +166,20 @@ The dev server runs alongside `bun start` without touching it:
 |          | `bun start`      | `bun run dev`        |
 | -------- | ---------------- | -------------------- |
 | UI       | :4545            | :4546                |
-| Database | `mitllmproxy.db` | `mitllmproxy-dev.db` |
+| Database | `~/.mitllmproxy/mitllmproxy.db` | `mitllmproxy-dev.db` |
 
 Both are just `bin/mitllmproxy.ts` with different flags — see `package.json`'s `start`/`dev` scripts.
 
 To send real traffic to the dev build, run a second mitmproxy on another port with the addon pointed at the dev server:
 
 ```sh
-MITLLMPROXY_URL=http://127.0.0.1:4546/ingest mitmdump -p 9080 -s "$(bun bin/mitllmproxy.ts addon-path)"
+MITLLMPROXY_DB="$PWD/mitllmproxy-dev.db" mitmdump -p 9080 -s "$(bun bin/mitllmproxy.ts addon-path)"
 ```
-
-Both servers share `mitllmproxy.config.json`, so filter edits in either UI apply to both.
 
 Layout:
 
 - `addon/`: the mitmproxy addon.
+- `config/`: the built-in capture patterns, read by the addon.
 - `server/parsers/`: one normalizer per API, all producing a common block model.
 - `server/providers/`: one module per provider or router, reading the session id its clients declare.
 - `server/sessions.ts`: the grouping logic.

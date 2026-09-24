@@ -4,8 +4,7 @@
  */
 import { anthropicTurns, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "../test/fixtures";
 
-const config = await Bun.file(new URL("../mitllmproxy.config.json", import.meta.url)).json().catch(() => ({}));
-const url = process.env.MITLLMPROXY_URL ?? `http://127.0.0.1:${config.port ?? 4545}/ingest`;
+const url = process.env.MITLLMPROXY_URL ?? "http://127.0.0.1:4545/ingest";
 const slow = process.argv.includes("--slow");
 const now = Date.now() / 1000;
 

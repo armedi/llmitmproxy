@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, fmtAgo, fmtTokens, useUpdates, type Session } from "./api";
 import { SessionView } from "./components/SessionView";
-import { Settings } from "./components/Settings";
 
 const PROVIDER_LABEL: Record<string, string> = {
   anthropic: "Anthropic",
@@ -33,7 +32,6 @@ function App() {
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState("");
   const [hideOneOff, setHideOneOff] = useState(() => localStorage.getItem("hideOneOff") === "1");
-  const [showSettings, setShowSettings] = useState(false);
   const [tick, setTick] = useState<{ sessionId: number; n: number }>({ sessionId: 0, n: 0 });
   const now = useNow();
 
@@ -103,9 +101,6 @@ function App() {
             mitllmproxy <span className={`dot ${connected ? "on" : "off"}`} title={connected ? "live" : "disconnected"} />
           </div>
           <div className="head-actions">
-            <button className="ghost" onClick={() => setShowSettings(true)} title="URL filters">
-              Filters
-            </button>
             <button
               className="ghost"
               onClick={() => confirm("Delete all captured sessions?") && api.clear()}
@@ -171,7 +166,6 @@ function App() {
           <div className="placeholder">Select a session</div>
         )}
       </main>
-      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

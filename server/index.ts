@@ -1,29 +1,28 @@
-import { resolve } from "node:path";
+import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, resolve } from "node:path";
 import index from "../web/index.html";
 import { downloadName, exportSession } from "./export";
+import { drainSpool, type Imported, spoolDir } from "./spool";
 import { Store } from "./store";
 import type { IngestEvent } from "./types";
 
-const ROOT = resolve(import.meta.dir, "..");
+/** Same default as the addon, which writes captures next to it. */
+export const DEFAULT_DB = resolve(homedir(), ".mitllmproxy", "mitllmproxy.db");
+export const DEFAULT_PORT = 4545;
+const SPOOL_BATCH = 200;
 
 export interface StartOptions {
   port?: number;
   host?: string;
-  config?: string;
   db?: string;
   dev?: boolean;
 }
 
-async function readConfig(configPath: string): Promise<Record<string, any>> {
-  const f = Bun.file(configPath);
-  return (await f.exists()) ? await f.json() : { port: 4545, urls: [] };
-}
-
 export async function startServer(opts: StartOptions = {}) {
-  const configPath = opts.config ?? resolve(ROOT, "mitllmproxy.config.json");
-  const config = await readConfig(configPath);
-  const port = opts.port ?? Number(config.port ?? 4545);
-  const store = new Store(opts.db ?? resolve(ROOT, config.db ?? "mitllmproxy.db"));
+  const dbPath = opts.db ?? DEFAULT_DB;
+  mkdirSync(dirname(dbPath), { recursive: true });
+  const store = new Store(dbPath);
 
   const json = (data: unknown, status = 200) => Response.json(data, { status });
   const idParam = (req: { params: { id: string } }) => Number(req.params.id);
@@ -33,7 +32,7 @@ export async function startServer(opts: StartOptions = {}) {
     });
 
   const server = Bun.serve({
-    port,
+    port: opts.port ?? DEFAULT_PORT,
     hostname: opts.host ?? "127.0.0.1",
     development: opts.dev ? { hmr: true, console: false } : false,
     routes: {
@@ -80,15 +79,6 @@ export async function startServer(opts: StartOptions = {}) {
         const r = store.getRequest(idParam(req));
         return r ? json(r) : json({ error: "not found" }, 404);
       },
-      "/api/config": {
-        GET: async () => json({ path: configPath, config: await readConfig(configPath) }),
-        PUT: async (req) => {
-          const body = await req.json();
-          if (!body || !Array.isArray(body.urls)) return json({ error: "config.urls must be an array" }, 400);
-          await Bun.write(configPath, JSON.stringify(body, null, 2) + "\n");
-          return json({ ok: true });
-        },
-      },
       "/ws": (req, srv) => (srv.upgrade(req) ? undefined : new Response("upgrade failed", { status: 400 })),
     },
     websocket: {
@@ -99,9 +89,29 @@ export async function startServer(opts: StartOptions = {}) {
     },
   });
 
-  console.log(`UI:              ${server.url}`);
-  console.log(`ingest endpoint: ${server.url}ingest`);
-  console.log(`database:        ${store.db.filename}`);
+  // The addon queues events as files in the spool dir; import them, including anything
+  // captured while the server wasn't running.
+  const spool = spoolDir(store.db.filename);
+  const drain = () => {
+    try {
+      // Keep going while batches come back full, so a backlog is imported in one pass.
+      let batch: Imported[];
+      do {
+        batch = drainSpool(store, spool, SPOOL_BATCH);
+        for (const { sessionId, requestId, state } of batch) {
+          server.publish("updates", JSON.stringify({ type: "update", session: store.getSession(sessionId), requestId, state }));
+        }
+      } while (batch.length === SPOOL_BATCH);
+    } catch (e) {
+      console.error("importing spooled events failed", e);
+    }
+  };
+  drain();
+  setInterval(drain, 300);
+
+  console.log(`UI:       ${server.url}`);
+  console.log(`database: ${store.db.filename}`);
+  console.log(`spool:    ${spool}`);
 
   return server;
 }

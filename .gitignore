@@ -4,3 +4,4 @@ node_modules/
 *.db-wal
 .DS_Store
 __pycache__/
+*.db-spool/

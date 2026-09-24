@@ -62,8 +62,7 @@ button.link {
   padding: 0;
 }
 input,
-select,
-textarea {
+select {
   font: inherit;
   color: var(--text);
   background: var(--panel-2);
@@ -711,44 +710,6 @@ pre.json {
 .jt-more {
   margin-left: 8px;
   font-size: 11px;
-}
-
-/* ---------- modal ---------- */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: #0009;
-  display: grid;
-  place-items: center;
-}
-.modal {
-  width: min(720px, 92vw);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.modal h2 {
-  margin: 0;
-  font-size: 16px;
-}
-.modal label {
-  font-weight: 600;
-  margin-top: 6px;
-}
-.modal textarea {
-  font-family: var(--mono);
-  font-size: 12px;
-  resize: vertical;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
 }
 
 /* ---------- export menu ---------- */

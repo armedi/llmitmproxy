@@ -1,16 +1,19 @@
 """
 mitllmproxy mitmproxy addon.
 
-Filters flows by the URL patterns in mitllmproxy.config.json and forwards matching
-ones to the mitllmproxy server. Stdlib only, so it runs inside mitmproxy's own
-environment without installing anything.
+Filters flows by the URL patterns in config/capture-urls.json (fixed, shipped
+with the package) and queues matching
+ones as JSON files in a spool directory next to the database (`<db>-spool/`). The
+server imports and deletes them whenever it runs, so capturing works without it.
+Stdlib only (mitmproxy's binary builds don't even ship sqlite3), so it runs inside
+mitmproxy's own environment without installing anything.
 
     mitmdump -s addon/mitllmproxy_addon.py
     mitmweb  -s addon/mitllmproxy_addon.py
 
 Environment overrides:
-    MITLLMPROXY_CONFIG  path to mitllmproxy.config.json (default: repo root)
-    MITLLMPROXY_URL     ingest endpoint (default: http://127.0.0.1:<port>/ingest)
+    MITLLMPROXY_DB  path to the SQLite database; events go to "<db>-spool/"
+                    (default: ~/.mitllmproxy/mitllmproxy.db)
 """
 
 from __future__ import annotations
@@ -24,18 +27,14 @@ import queue
 import re
 import threading
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 from mitmproxy import http
 
 log = logging.getLogger("mitllmproxy")
 
-CONFIG_PATH = Path(
-    os.environ.get("MITLLMPROXY_CONFIG")
-    or Path(__file__).resolve().parent.parent / "mitllmproxy.config.json"
-)
+CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "capture-urls.json"
+DEFAULT_DB = Path.home() / ".mitllmproxy" / "mitllmproxy.db"
 REDACT_HEADERS = {
     "authorization",
     "proxy-authorization",
@@ -57,40 +56,18 @@ def _compile(pattern: str):
 
 class Config:
     def __init__(self, path: Path):
-        self.path = path
-        self.mtime = -1.0
-        self.port = 4545
         self.include: list = []
         self.exclude: list = []
-        self.checked = 0.0
-
-    def refresh(self) -> None:
-        now = time.monotonic()
-        if now - self.checked < 1.0:
-            return
-        self.checked = now
         try:
-            mtime = self.path.stat().st_mtime
-        except OSError:
-            if self.mtime == -1.0:
-                log.warning("mitllmproxy: config not found at %s", self.path)
-                self.mtime = -2.0
-            return
-        if mtime == self.mtime:
-            return
-        try:
-            data = json.loads(self.path.read_text())
+            data = json.loads(path.read_text())
         except (OSError, ValueError) as e:
-            log.warning("mitllmproxy: failed to read config: %s", e)
+            log.warning("mitllmproxy: failed to read config at %s: %s", path, e)
             return
-        self.mtime = mtime
-        self.port = int(data.get("port", 4545))
         self.include = [_compile(p) for p in data.get("urls", [])]
         self.exclude = [_compile(p) for p in data.get("ignore", [])]
-        log.info("mitllmproxy: loaded %d url patterns from %s", len(self.include), self.path)
+        log.info("mitllmproxy: loaded %d url patterns from %s", len(self.include), path)
 
     def matches(self, url: str) -> bool:
-        self.refresh()
         full = url
         short = url.split("://", 1)[-1].split("?", 1)[0]
         if any(m(full, short) for m in self.exclude):
@@ -125,37 +102,44 @@ class MitLlmProxy:
     def __init__(self) -> None:
         self.config = Config(CONFIG_PATH)
         self.q: queue.Queue[dict] = queue.Queue(maxsize=1000)
-        self.down_since: float | None = None
-        threading.Thread(target=self._worker, name="mitllmproxy-sender", daemon=True).start()
+        self.failing = False
+        threading.Thread(target=self._worker, name="mitllmproxy-writer", daemon=True).start()
 
-    # ---- sending -------------------------------------------------------
+    # ---- writing -------------------------------------------------------
 
-    def _endpoint(self) -> str:
-        return os.environ.get("MITLLMPROXY_URL") or f"http://127.0.0.1:{self.config.port}/ingest"
+    @staticmethod
+    def _spool_dir() -> Path:
+        env = os.environ.get("MITLLMPROXY_DB")
+        db = Path(env).expanduser() if env else DEFAULT_DB
+        return db.with_name(db.name + "-spool")
 
     def _worker(self) -> None:
+        seq = 0
         while True:
             event = self.q.get()
-            data = json.dumps(event).encode("utf-8")
-            req = urllib.request.Request(
-                self._endpoint(), data=data, headers={"content-type": "application/json"}, method="POST"
-            )
+            spool: Path | None = None
             try:
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    resp.read()
-                if self.down_since is not None:
-                    log.info("mitllmproxy: server reachable again")
-                    self.down_since = None
-            except (urllib.error.URLError, OSError) as e:
-                if self.down_since is None:
-                    log.warning("mitllmproxy: cannot reach %s (%s); dropping events until it is up", self._endpoint(), e)
-                    self.down_since = time.time()
+                spool = self._spool_dir()
+                spool.mkdir(parents=True, exist_ok=True)
+                # Names sort in write order; write to a dotfile then rename so the server never sees partial files.
+                seq += 1
+                name = f"{time.time_ns():020d}-{os.getpid()}-{seq:08d}.json"
+                tmp = spool / f".{name}.tmp"
+                tmp.write_text(json.dumps(event), encoding="utf-8")
+                os.replace(tmp, spool / name)
+                if self.failing:
+                    log.info("mitllmproxy: writing to %s again", spool)
+                    self.failing = False
+            except Exception as e:  # never let the writer thread die
+                if not self.failing:
+                    log.warning("mitllmproxy: cannot write to %s (%s); dropping events until it works", spool, e)
+                    self.failing = True
 
     def _send(self, event: dict) -> None:
         try:
             self.q.put_nowait(event)
         except queue.Full:
-            log.warning("mitllmproxy: send queue full, dropping event")
+            log.warning("mitllmproxy: write queue full, dropping event")
 
     # ---- helpers -------------------------------------------------------
 

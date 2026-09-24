@@ -65,9 +65,6 @@ export const api = {
   request: (id: number) => get<RequestDetail>(`/api/requests/${id}`),
   deleteSession: (id: number) => fetch(`/api/sessions/${id}`, { method: "DELETE" }),
   clear: () => fetch("/api/sessions", { method: "DELETE" }),
-  config: () => get<{ path: string; config: any }>("/api/config"),
-  saveConfig: (config: unknown) =>
-    fetch("/api/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(config) }),
 };
 
 /** Subscribe to live updates, reconnecting with backoff. */

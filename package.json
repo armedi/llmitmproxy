@@ -10,11 +10,11 @@
     "server",
     "web",
     "addon",
-    "mitllmproxy.config.json"
+    "config"
   ],
   "scripts": {
-    "start": "bun bin/mitllmproxy.ts",
-    "dev": "bun --hot bin/mitllmproxy.ts --dev",
+    "start": "bun bin/mitllmproxy",
+    "dev": "bun --hot bin/mitllmproxy --dev",
     "replay": "bun scripts/replay.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
