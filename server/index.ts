@@ -41,7 +41,7 @@ export async function startServer(opts: StartOptions = {}) {
   const server = Bun.serve({
     port: opts.port ?? DEFAULT_PORT,
     hostname: opts.host ?? "127.0.0.1",
-    development: opts.dev ? { hmr: true, console: true } : false,
+    development: opts.dev ? { hmr: true, console: false } : false,
     routes: {
       ...(await uiRoutes(!!opts.dev)),
 
