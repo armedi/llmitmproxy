@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { api, contextTokens, fmtCost, fmtDuration, fmtSeconds, fmtTime, fmtTokens, type RequestDetail, type RequestSummary, type Session } from "../api";
+import { api, contextTokens, fmtCost, fmtDuration, fmtSeconds, fmtTime, fmtTokens, type RequestDetail, type RequestSummary, type Session, type Usage } from "../api";
 import { useKeys, useResizable, useStored } from "../hooks";
 import { ClientTag } from "./Sidebar";
 import { Conversation, type FindResult, type FindState } from "./Conversation";
@@ -18,13 +18,15 @@ interface Props {
   requestId: number | null;
   onOpenRequest: (id: number | null) => void;
   updateTick: number;
+  /** Asks for confirmation before deleting. */
   onDelete: () => void;
 }
 
 export function SessionView({ session, parent, children, onSelect, requestId, onOpenRequest, updateTick, onDelete }: Props) {
   const [detail, setDetail] = useState<RequestDetail | null>(null);
   const [requests, setRequests] = useState<RequestSummary[]>([]);
-  const [tab, setTab] = useState<"conversation" | "raw">("conversation");
+  // A request in the URL means someone opened it to inspect, which only the Raw view does.
+  const [tab, setTab] = useState<"conversation" | "raw">(requestId != null ? "raw" : "conversation");
   const [markdown, setMarkdown] = useState(() => localStorage.getItem("textMode") !== "plain");
   const [focused, setFocused] = useStored("focused", false);
   const [showVitals, setShowVitals] = useStored("vitals", true);
@@ -36,7 +38,7 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
 
   useEffect(() => localStorage.setItem("textMode", markdown ? "markdown" : "plain"), [markdown]);
 
-  // Every request in the session, for the timeline and per-turn stats.
+  // Every request in the session, for the per-turn stats, vitals and the Raw view's picker.
   useEffect(() => {
     let cancelled = false;
     api.requests(session.id).then((r) => !cancelled && setRequests(r));
@@ -45,10 +47,10 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
     };
   }, [session.id, updateTick]);
 
-  // The latest request carries the whole thread so far; its response is the newest assistant message.
-  // A request id from another session (e.g. an edited URL) falls back to the latest.
+  // The latest request carries the whole thread so far, so the conversation always shows it.
+  // Raw can show any request; one from another session (e.g. an edited URL) falls back to the latest.
   const foreign = requestId != null && requests.length > 0 && !requests.some((r) => r.id === requestId);
-  const shownId = requestId != null && !foreign ? requestId : session.latest_request_id;
+  const shownId = tab === "raw" && requestId != null && !foreign ? requestId : session.latest_request_id;
   const following = shownId === session.latest_request_id;
   useEffect(() => {
     let cancelled = false;
@@ -58,22 +60,31 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
     };
   }, [shownId, following || detail?.state === "pending" ? updateTick : 0]);
 
-  // Keep the view pinned to the bottom as the thread grows, unless the user scrolled up or opened an older request.
+  // Keep the view pinned to the bottom as the thread grows, unless the user scrolled up.
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (el && stickToBottom.current && following && tab === "conversation" && !find) el.scrollTop = el.scrollHeight;
+    if (el && stickToBottom.current && tab === "conversation" && !find) el.scrollTop = el.scrollHeight;
   }, [detail, tab]);
-  useEffect(() => {
-    stickToBottom.current = following;
-  }, [shownId]);
 
   const onScroll = () => {
     const el = scroller.current;
-    if (el) stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (el && tab === "conversation") stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  const openRaw = (id: number) => {
+    setTab("raw");
+    onOpenRequest(id === session.latest_request_id ? null : id);
+  };
+  const showTab = (t: "conversation" | "raw") => {
+    setTab(t);
+    if (t === "conversation") {
+      stickToBottom.current = true;
+      if (requestId != null) onOpenRequest(null);
+    }
   };
 
   useKeys({
-    t: () => setTab((t) => (t === "conversation" ? "raw" : "conversation")),
+    t: () => showTab(tab === "conversation" ? "raw" : "conversation"),
     f: () => setFocused((f) => !f),
     v: () => setShowVitals((v) => !v),
     m: () => setMarkdown((m) => !m),
@@ -82,10 +93,6 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
     Escape: () => (find ? setFind(null) : requestId != null ? onOpenRequest(null) : false),
   });
 
-  const n = detail?.normalized;
-  const usage = n?.response?.usage;
-  const ordinal = requests.findIndex((r) => r.id === shownId) + 1;
-  const ctx = session.input_tokens + session.cache_read_tokens + session.cache_write_tokens;
   const groupCost = session.parent_id == null && session.child_count > 0;
 
   return (
@@ -94,105 +101,65 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
         <header className="session-head">
           <div className="session-title-row">
             <h1 title={session.title}>{session.title}</h1>
-            <button className={`ghost ${showVitals ? "on" : ""}`} onClick={() => setShowVitals(!showVitals)} title="Session vitals (v)">
-              Vitals
-            </button>
             <ExportMenu session={session} />
-            <button
-              className="ghost danger"
-              onClick={() => confirm(children.length ? `Delete this session and its ${children.length} subagents and side calls?` : "Delete this session?") && onDelete()}
-            >
+            <button className="ghost danger" onClick={onDelete} title="Delete this session (asks first)">
               Delete
+            </button>
+            <button className={`ghost ${showVitals ? "on" : ""}`} onClick={() => setShowVitals(!showVitals)} title="Session stats panel (v)">
+              Stats
             </button>
           </div>
           <div className="session-meta">
             {session.client && <ClientTag client={session.client} />}
-            <span className={`badge p-${session.provider}`}>{session.provider}</span>
-            {session.model && <span className="chip">{session.model}</span>}
-            <span className="chip" title="First request">
-              {fmtTime(session.created_at)}
-            </span>
-            <span className="chip">{session.request_count} req</span>
-            {session.session_id && (
-              <span className="chip mono" title={session.agent_id ? `Agent session id · subagent ${session.agent_id}` : "Agent session id"}>
-                {session.session_id}
-              </span>
-            )}
-            <span className="spacer" />
-            <span
-              className="chip"
-              title={`Totals across all requests in this session\ninput ${session.input_tokens.toLocaleString()} · cache read ${session.cache_read_tokens.toLocaleString()} · cache write ${session.cache_write_tokens.toLocaleString()} · output ${session.output_tokens.toLocaleString()}`}
-            >
-              Σ {fmtTokens(ctx)} ctx · cache r {fmtTokens(session.cache_read_tokens)} / w {fmtTokens(session.cache_write_tokens)} · {fmtTokens(session.output_tokens)} out
+            {session.model && <span className="chip model">{session.model}</span>}
+            <span className="muted">
+              {session.request_count} request{session.request_count === 1 ? "" : "s"} · started {fmtTime(session.created_at)}
             </span>
             <span
               className="chip cost"
               title={`Estimated from list prices${session.unpriced ? ` · ${session.unpriced} requests with an unknown model price` : ""}${groupCost ? `\nthis session ${fmtCost(session.cost)}, with subagents ${fmtCost(session.group_cost)}` : ""}`}
             >
               {fmtCost(groupCost ? session.group_cost : session.cost)}
-              {groupCost && <span className="muted"> total</span>}
+              {groupCost && <span className="muted"> incl. subagents</span>}
               {session.unpriced > 0 && <span className="muted">*</span>}
             </span>
+            <span className="spacer" />
+            {tab === "conversation" && (
+              <>
+                <button className={`ghost small ${focused ? "on" : ""}`} onClick={() => setFocused(!focused)} title="Only prompts and final answers (f)">
+                  Focused
+                </button>
+                <button className={`ghost small ${markdown ? "on" : ""}`} onClick={() => setMarkdown(!markdown)} title="Render message text as Markdown (m)">
+                  Markdown
+                </button>
+              </>
+            )}
+            <div className="tabs" title="Switch view (t)">
+              <button className={tab === "conversation" ? "on" : ""} onClick={() => showTab("conversation")}>
+                Conversation
+              </button>
+              <button className={tab === "raw" ? "on" : ""} onClick={() => showTab("raw")}>
+                Raw
+              </button>
+            </div>
           </div>
           <Related session={session} parent={parent} children={children} onSelect={onSelect} />
-          {detail && (
+          {tab === "raw" && detail && (
             <div className="session-meta small">
-              {!following && (
-                <span className="chip viewing">
-                  Viewing request {ordinal || "?"} of {requests.length || session.request_count}
-                  <button className="link" onClick={() => onOpenRequest(null)}>
-                    Back to latest
-                  </button>
-                </span>
-              )}
-              <RequestPicker requests={requests} shownId={shownId} onOpen={(id) => onOpenRequest(id === session.latest_request_id ? null : id)} />
+              <RequestPicker requests={requests} shownId={shownId} onOpen={openRaw} />
               <StatusChip d={detail} />
-              <span className="chip" title="Request duration">
+              <span className="chip" title={detail.response_started_at != null ? `Response started after ${fmtSeconds(detail.response_started_at - detail.started_at)}` : "Request duration"}>
                 {fmtDuration(detail.started_at, detail.ended_at)}
               </span>
-              {detail.response_started_at != null && (
-                <span className="chip" title="Time until response headers arrived">
-                  headers {fmtSeconds(detail.response_started_at - detail.started_at)}
-                </span>
-              )}
-              {usage && (
-                <span className="chip">
-                  in {fmtTokens(usage.input)}
-                  {usage.cacheRead != null && ` · cache r ${fmtTokens(usage.cacheRead)}`}
-                  {usage.cacheWrite != null && ` · w ${fmtTokens(usage.cacheWrite)}`} · out {fmtTokens(usage.output)}
-                  {usage.reasoning != null && ` · reasoning ${fmtTokens(usage.reasoning)}`}
-                  {` · ctx ${fmtTokens(contextTokens(usage))}`}
+              {detail.usage && (
+                <span className="chip" title={usageTitle(detail.usage)}>
+                  {fmtTokens(contextTokens(detail.usage))} ctx / {fmtTokens(detail.usage.output)} out
                 </span>
               )}
               {detail.cost != null && <span className="chip cost">{fmtCost(detail.cost)}</span>}
-              {n?.response?.stopReason && <span className="chip">stop: {n.response.stopReason}</span>}
               <span className="chip url" title={detail.url}>
                 {detail.url}
               </span>
-              <span className="spacer" />
-              {tab === "conversation" && (
-                <>
-                  <button className={`ghost small ${focused ? "on" : ""}`} onClick={() => setFocused(!focused)} title="Only prompts and final answers (f)">
-                    Focused
-                  </button>
-                  <div className="tabs" title="How message text is shown (m)">
-                    <button className={markdown ? "on" : ""} onClick={() => setMarkdown(true)}>
-                      Markdown
-                    </button>
-                    <button className={markdown ? "" : "on"} onClick={() => setMarkdown(false)}>
-                      Plain
-                    </button>
-                  </div>
-                </>
-              )}
-              <div className="tabs" title="Switch view (t)">
-                <button className={tab === "conversation" ? "on" : ""} onClick={() => setTab("conversation")}>
-                  Conversation
-                </button>
-                <button className={tab === "raw" ? "on" : ""} onClick={() => setTab("raw")}>
-                  Raw
-                </button>
-              </div>
             </div>
           )}
         </header>
@@ -210,7 +177,7 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
                   focused={focused}
                   find={find ?? NO_FIND}
                   onFind={setFound}
-                  onOpenRequest={(id) => onOpenRequest(id === session.latest_request_id ? null : id)}
+                  onOpenRequest={openRaw}
                 />
               </MarkdownMode.Provider>
             ) : (
@@ -223,24 +190,36 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
       {showVitals && (
         <div className="vitals-col">
           <div className="resize-handle left" onPointerDown={vitalsCol.onPointerDown} />
-          <Vitals session={session} requests={requests} viewing={shownId} onOpenRequest={(id) => onOpenRequest(id === session.latest_request_id ? null : id)} />
+          <Vitals session={session} requests={requests} onOpenRequest={openRaw} />
         </div>
       )}
     </div>
   );
 }
 
+function usageTitle(u: Usage) {
+  return [
+    `input ${(u.input ?? 0).toLocaleString()}`,
+    u.cacheRead != null && `cache read ${u.cacheRead.toLocaleString()}`,
+    u.cacheWrite != null && `cache write ${u.cacheWrite.toLocaleString()}`,
+    `output ${(u.output ?? 0).toLocaleString()}`,
+    u.reasoning != null && `reasoning ${u.reasoning.toLocaleString()}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 const NO_FIND: FindState = { query: "", cursor: 0 };
 
-/** Jump to any request of the session. */
+/** Pick which request the Raw view shows. */
 function RequestPicker({ requests, shownId, onOpen }: { requests: RequestSummary[]; shownId: number; onOpen: (id: number) => void }) {
-  if (requests.length < 2) return null;
+  if (!requests.length) return null;
   return (
-    <select className="req-picker" value={shownId} onChange={(e) => onOpen(Number(e.target.value))} title="Open another request of this session">
+    <select className="req-picker" value={shownId} onChange={(e) => onOpen(Number(e.target.value))} title="Which request to inspect">
       {requests.map((r, i) => (
         <option key={r.id} value={r.id}>
-          Request {i + 1} of {requests.length} · {fmtTime(r.started_at)} · {r.msg_count} msgs
-          {r.state === "pending" ? " · in flight" : r.stop_reason ? ` · ${r.stop_reason}` : ""}
+          Request {i + 1} of {requests.length} · {fmtTime(r.started_at)}
+          {r.state === "pending" ? " · in flight" : r.tool_calls.length ? ` · ${[...new Set(r.tool_calls)].join(", ")}` : r.stop_reason ? ` · ${r.stop_reason}` : ""}
         </option>
       ))}
     </select>

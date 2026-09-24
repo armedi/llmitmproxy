@@ -7,9 +7,9 @@ const SHORTCUTS: [string, string][] = [
   ["t", "Switch Conversation / Raw"],
   ["f", "Focused mode: prompts and final answers only"],
   ["m", "Markdown / plain text"],
-  ["v", "Show / hide the vitals panel"],
+  ["v", "Show / hide the stats panel"],
   ["b", "Show / hide the sidebar"],
-  ["Esc", "Close find, return to the latest request, close this help"],
+  ["Esc", "Close find or this help; in Raw, return to the latest request"],
   ["?", "This help"],
 ];
 

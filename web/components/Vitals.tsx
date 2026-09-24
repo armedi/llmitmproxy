@@ -1,19 +1,19 @@
 import { useMemo, useState } from "react";
-import { contextTokens, fmtCost, fmtSeconds, fmtTime, fmtTokens, type RequestSummary, type Session } from "../api";
+import { fmtCost, fmtSeconds, fmtTokens, type RequestSummary, type Session } from "../api";
 import { useNow } from "../hooks";
 import { duration, vitals } from "../transcript/stats";
 import { category } from "../transcript/tools";
+import { Copy } from "./Copy";
+import { PROVIDER_LABEL } from "./Sidebar";
 
 interface Props {
   session: Session;
   requests: RequestSummary[];
-  /** The request shown in the transcript. */
-  viewing: number | null;
   onOpenRequest: (id: number) => void;
 }
 
-/** Session-level numbers: time, tokens, cost, latency, tools, and every request. */
-export function Vitals({ session, requests, viewing, onOpenRequest }: Props) {
+/** Session-level numbers: time, tokens, cost, latency and tools. */
+export function Vitals({ session, requests, onOpenRequest }: Props) {
   const v = useMemo(() => vitals(requests), [requests]);
   const now = useNow(1000, v.pending > 0);
   const end = v.pending > 0 ? now / 1000 : v.endedAt;
@@ -24,20 +24,25 @@ export function Vitals({ session, requests, viewing, onOpenRequest }: Props) {
     <aside className="vitals">
       <VSection title="Session">
         <Grid>
-          <Stat label="Wall clock" value={wall != null ? fmtSeconds(wall) : "–"} hint={v.pending ? "running…" : undefined} />
+          <Stat label="Duration" value={wall != null ? fmtSeconds(wall) : "–"} hint={v.pending ? "running…" : undefined} />
           <Stat label="Requests" value={String(v.requests)} hint={v.pending ? `${v.pending} in flight` : undefined} />
           <Stat label="Errors" value={String(v.errors)} bad={v.errors > 0} />
-          <Stat label="Started" value={v.startedAt ? fmtTime(v.startedAt) : "–"} />
-          {session.client && <Stat label="Client" value={session.client} />}
-          <Stat label="API" value={session.provider} />
+          <Stat label="API" value={PROVIDER_LABEL[session.provider] ?? session.provider} />
         </Grid>
+        {session.session_id && (
+          <div className="v-id" title={session.agent_id ? `Agent session id · subagent ${session.agent_id}` : "The agent's own session id"}>
+            <span className="stat-label">Session ID</span>
+            <code>{session.session_id}</code>
+            <Copy text={session.session_id} />
+          </div>
+        )}
       </VSection>
 
       <VSection title="Tokens">
         <Grid>
           <Stat label="Context now" value={fmtTokens(v.currentContext)} />
           <Stat label="Peak context" value={fmtTokens(v.peakContext)} />
-          <Stat label="Cache hit" value={pct(v.cacheHitRate)} hint="cache read ÷ prompt" />
+          <Stat label="Cache hit" value={pct(v.cacheHitRate)} hint="of input served from cache" />
           <Stat label="Output" value={fmtTokens(v.totals.output)} hint={v.totals.reasoning ? `${fmtTokens(v.totals.reasoning)} reasoning` : undefined} />
         </Grid>
         <TokenBreakdown totals={v.totals} />
@@ -66,13 +71,13 @@ export function Vitals({ session, requests, viewing, onOpenRequest }: Props) {
 
       <VSection title="Latency">
         <Grid>
-          <Stat label="p50" value={v.p50 != null ? fmtSeconds(v.p50) : "–"} />
-          <Stat label="p90" value={v.p90 != null ? fmtSeconds(v.p90) : "–"} />
-          <Stat label="Avg to headers" value={v.avgHeaders != null ? fmtSeconds(v.avgHeaders) : "–"} hint="time until response headers" />
+          <Stat label="Typical (p50)" value={v.p50 != null ? fmtSeconds(v.p50) : "–"} />
+          <Stat label="Slow (p90)" value={v.p90 != null ? fmtSeconds(v.p90) : "–"} />
+          <Stat label="Avg wait" value={v.avgHeaders != null ? fmtSeconds(v.avgHeaders) : "–"} hint="until the response starts" />
           <Stat
             label="Slowest"
             value={v.slowest ? fmtSeconds(duration(v.slowest)!) : "–"}
-            hint={v.slowest ? `request ${requests.indexOf(v.slowest) + 1} ↗` : undefined}
+            hint={v.slowest ? `request ${requests.indexOf(v.slowest) + 1} · view raw ↗` : undefined}
             onClick={v.slowest ? () => onOpenRequest(v.slowest!.id) : undefined}
           />
         </Grid>
@@ -103,57 +108,8 @@ export function Vitals({ session, requests, viewing, onOpenRequest }: Props) {
         </VSection>
       )}
 
-      <VSection title="Requests" note="click to open">
-        <div className="req-list">
-          {requests.map((r, i) => {
-            const d = duration(r);
-            const bad = r.state === "error" || (r.status ?? 0) >= 400;
-            return (
-              <button key={r.id} className={`req-row ${r.id === viewing ? "on" : ""}`} onClick={() => onOpenRequest(r.id)} title={requestTitle(r, i)}>
-                <span className="req-n muted">{i + 1}</span>
-                <span className="req-main">
-                  <span className="req-line">
-                    {r.state === "pending" ? (
-                      <span className="chip pending">
-                        <span className="spinner" />
-                        in flight
-                      </span>
-                    ) : bad ? (
-                      <span className="chip bad">{r.status ?? "error"}</span>
-                    ) : null}
-                    <span className="req-tools">{r.tool_calls.length ? r.tool_calls.join(", ") : (r.stop_reason ?? "")}</span>
-                    <span className="spacer" />
-                    <span className="muted">{r.usage ? `${fmtTokens(contextTokens(r.usage))}/${fmtTokens(r.usage.output)}` : ""}</span>
-                  </span>
-                  <span className="req-line">
-                    <span className="bar-track">
-                      <span className={`bar-fill ${bad ? "bad" : r.state === "pending" ? "pending" : "dur"}`} style={{ width: `${d != null && v.longest ? Math.max(4, (d / v.longest) * 100) : 4}%` }} />
-                    </span>
-                    <span className="bar-value">{d != null ? fmtSeconds(d) : "…"}</span>
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </VSection>
     </aside>
   );
-}
-
-function requestTitle(r: RequestSummary, i: number) {
-  const u = r.usage;
-  return [
-    `Request ${i + 1} · ${fmtTime(r.started_at)}`,
-    r.model,
-    r.stop_reason && `stop: ${r.stop_reason}`,
-    u && `input ${u.input ?? 0} · cache read ${u.cacheRead ?? 0} · cache write ${u.cacheWrite ?? 0} · output ${u.output ?? 0}`,
-    r.cost != null && `cost ${fmtCost(r.cost)}`,
-    r.response_started_at && `headers after ${fmtSeconds(r.response_started_at - r.started_at)}`,
-    r.error,
-  ]
-    .filter(Boolean)
-    .join("\n");
 }
 
 function VSection({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {

@@ -155,7 +155,6 @@ function MessageView({ item, turns, sessionModel, onOpenRequest, detail }: ViewP
       <div className="msg-head">
         <span className="role-icon">{ROLE_ICON[item.role] ?? "?"}</span>
         <span className="role-label">{item.role}</span>
-        <span className="muted">#{item.index + 1}</span>
         {pending && (
           <span className="muted">
             <span className="spinner" /> responding…
@@ -179,8 +178,6 @@ function MessageView({ item, turns, sessionModel, onOpenRequest, detail }: ViewP
 function ToolGroup({ item, ...v }: ViewProps & { item: Extract<Item, { kind: "tools" }> }) {
   const counts = new Map<string, number>();
   for (const m of item.items) if (m.kind === "message") for (const b of m.blocks) if (b.type === "tool_use") counts.set(b.name, (counts.get(b.name) ?? 0) + 1);
-  const first = item.items[0]!.index + 1;
-  const last = item.items[item.items.length - 1]!.index + 1;
   return (
     <details className="tool-group" open>
       <summary>
@@ -193,10 +190,6 @@ function ToolGroup({ item, ...v }: ViewProps & { item: Extract<Item, { kind: "to
             </span>
           ))}
         </span>
-        <span className="spacer" />
-        <span className="muted">
-          #{first}–{last}
-        </span>
       </summary>
       {item.items.map((m) =>
         m.kind === "boundary" ? (
@@ -204,7 +197,6 @@ function ToolGroup({ item, ...v }: ViewProps & { item: Extract<Item, { kind: "to
         ) : (
           <div key={m.index} className="tg-step">
             <div className="tg-step-head">
-              <span className="muted">#{m.index + 1}</span>
               <span className="spacer" />
               {v.turns.get(m.index) && <TurnMeta turn={v.turns.get(m.index)!} sessionModel={v.sessionModel} onOpenRequest={v.onOpenRequest} />}
             </div>
@@ -216,7 +208,7 @@ function ToolGroup({ item, ...v }: ViewProps & { item: Extract<Item, { kind: "to
   );
 }
 
-/** Duration, tokens and cost of the request that produced a message, linking to it. */
+/** Duration, tokens and cost of the request that produced a message, linking to its raw capture. */
 function TurnMeta({ turn: { request: r, ordinal }, sessionModel, onOpenRequest }: { turn: Turn; sessionModel: string | null; onOpenRequest: (id: number) => void }) {
   const u = r.usage;
   const bad = r.state === "error" || (r.status ?? 0) >= 400;
@@ -232,7 +224,7 @@ function TurnMeta({ turn: { request: r, ordinal }, sessionModel, onOpenRequest }
       )}
       {r.cost != null && <span title="Estimated cost">{fmtCost(r.cost)}</span>}
       {r.stop_reason && r.stop_reason !== "end_turn" && r.stop_reason !== "tool_use" && <span className="chip">{r.stop_reason}</span>}
-      <button className="link" title="Open this request" onClick={() => onOpenRequest(r.id)}>
+      <button className="link" title="Inspect this request in the Raw view" onClick={() => onOpenRequest(r.id)}>
         req {ordinal}
       </button>
     </span>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, useUpdates, type Session } from "./api";
+import { useConfirm } from "./components/Confirm";
 import { Help } from "./components/Help";
 import { SessionView } from "./components/SessionView";
 import { arrange, type Filters, readFilters, SessionList, writeFilters } from "./components/Sidebar";
@@ -28,6 +29,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useStored("sidebar", true);
   const [help, setHelp] = useState(false);
   const [theme, cycleTheme] = useTheme();
+  const [confirmDialog, askConfirm] = useConfirm();
   const sidebar = useResizable("sidebarWidth", 340, 220, 520, "right");
   const now = useNow();
   const selected = route.session;
@@ -87,6 +89,37 @@ function App() {
     const next = roots[Math.max(0, Math.min(roots.length - 1, at + d))];
     if (next) select(next.id);
   };
+  const roots = sessions.filter((s) => s.parent_id == null).length;
+  const clearAll = () =>
+    askConfirm({
+      title: "Delete all sessions?",
+      body: (
+        <p>
+          All {roots} session{roots === 1 ? "" : "s"}
+          {sessions.length > roots && `, with their ${sessions.length - roots} subagents and side calls,`} will be permanently deleted from the database.
+        </p>
+      ),
+      action: "Delete all",
+      onConfirm: () => api.clear(),
+    });
+  const deleteSession = (s: Session) => {
+    const kids = sessions.filter((c) => c.parent_id === s.id).length;
+    askConfirm({
+      title: "Delete this session?",
+      body: (
+        <>
+          <p className="confirm-target">{s.title}</p>
+          <p>
+            {s.request_count} captured request{s.request_count === 1 ? "" : "s"}
+            {kids > 0 && `, plus ${kids} subagent${kids === 1 ? "" : "s"} and side call${kids === 1 ? "" : "s"},`} will be permanently deleted.
+          </p>
+        </>
+      ),
+      action: "Delete session",
+      onConfirm: () => api.deleteSession(s.id).then(() => select(s.parent_id)),
+    });
+  };
+
   useKeys({
     "]": () => step(1),
     "[": () => step(-1),
@@ -113,8 +146,8 @@ function App() {
               <button className="ghost" onClick={() => setSidebarOpen(false)} title="Hide sidebar (b)">
                 ⟨
               </button>
-              <button className="ghost danger" onClick={() => confirm("Delete all captured sessions?") && api.clear()} title="Delete all sessions">
-                Clear
+              <button className="ghost danger" onClick={clearAll} disabled={!sessions.length} title="Delete all sessions (asks first)">
+                Delete all
               </button>
             </div>
           </header>
@@ -138,13 +171,14 @@ function App() {
             requestId={route.request}
             onOpenRequest={(id) => navigate({ session: current.id, request: id })}
             updateTick={tick.sessionId === current.id ? tick.n : 0}
-            onDelete={() => api.deleteSession(current.id).then(() => select(current.parent_id))}
+            onDelete={() => deleteSession(current)}
           />
         ) : (
           <div className="placeholder">Select a session</div>
         )}
       </main>
       {help && <Help onClose={() => setHelp(false)} />}
+      {confirmDialog}
     </div>
   );
 }

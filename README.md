@@ -2,7 +2,7 @@
 
 A live viewer for the LLM calls your agents make, captured through mitmproxy.
 
-Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Older requests are still available from the "Request N of N" picker and the vitals panel's request list.
+Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Any single request can still be inspected in the **Raw** tab, which has a request picker.
 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Claude on Vertex AI (`:rawPredict` / `:streamRawPredict`) is also supported. Both streaming (SSE) and non-streaming responses are supported.
 
@@ -106,16 +106,16 @@ To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch 
   - Edit, MultiEdit, Write and `apply_patch` inputs are shown as diffs, with an **Args** toggle for the raw arguments.
   - Runs of tool-only turns collapse into one "N tool calls" block, and calls made together are bracketed as parallel.
   - Injected context (`<system-reminder>`, slash-command echoes, hook output) becomes a small collapsible card.
-  - Each assistant message shows the request that produced it: duration, context and output tokens, cost, the model when it differs from the session's, and a link to that request.
+  - Each assistant message shows the request that produced it: duration, context and output tokens, cost, the model when it differs from the session's, and a link that opens that request in the Raw tab.
   - **Focused** shows only your prompts and the final answers.
   - The System prompt, Tools, Parameters and the **Raw** tab (headers, bodies, the normalized model) are all still there.
-- **Vitals** (right panel):
-  - Wall-clock time, requests and errors.
+- **Stats** (right panel):
+  - Duration, requests, errors, API and the agent's session ID.
   - Tokens split into input, cache read and cache write, the cache hit rate, and peak and current context with a per-request sparkline.
   - Estimated cost, including subagents and broken down by model.
-  - Latency: p50, p90, time to response headers, and the slowest request.
+  - Latency: p50, p90, average wait until the response starts, and the slowest request (click to open it in Raw).
   - Tool call counts.
-  - Every request, with duration bars. Click one to open it.
+- **Deleting** a session or all sessions always asks first, in a dialog that names what will be removed. Cancel has focus, so Enter or Esc backs out.
 - **Themes:** light, dark, or follow the system (button in the sidebar header).
 
 ### Keyboard shortcuts
@@ -129,9 +129,9 @@ To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch 
 | `t` | Conversation / Raw |
 | `f` | Focused mode |
 | `m` | Markdown / plain text |
-| `v` | Vitals panel |
+| `v` | Stats panel |
 | `b` | Sidebar |
-| `Esc` | Close find, or go back to the latest request |
+| `Esc` | Close find, or in Raw go back to the latest request |
 | `?` | All shortcuts |
 
 ### Cost estimates

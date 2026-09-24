@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { contextTokens, fmtAgo, fmtCost, fmtTokens, type Session } from "../api";
+import { fmtAgo, fmtCost, type Session } from "../api";
 import { groupStatus, STATUS_LABEL, sessionStatus, type Status } from "../status";
 
 export const PROVIDER_LABEL: Record<string, string> = {
@@ -129,7 +129,7 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
           <div className="seg" title="Group sessions by">
             {(["none", "client", "model", "provider"] as GroupBy[]).map((g) => (
               <button key={g} className={filters.group === g ? "on" : ""} onClick={() => set({ group: g })}>
-                {g === "none" ? "Recent" : g[0]!.toUpperCase() + g.slice(1)}
+                {g === "none" ? "Recent" : g === "provider" ? "API" : g[0]!.toUpperCase() + g.slice(1)}
               </button>
             ))}
           </div>
@@ -213,7 +213,7 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
                         open={open}
                         onToggle={() => setExpanded(toggle(expanded, s.id))}
                         onSelect={onSelect}
-                        showClient={filters.group !== "client"}
+                        showClient={filters.group !== "client" && clients.length > 1}
                         cost={s.child_count ? s.group_cost : s.cost}
                       />
                       {open && kids.length > 0 && (
@@ -263,7 +263,6 @@ interface RowProps {
 }
 
 function Row({ s, status, active, inGroup, now, kids = 0, open, onToggle, onSelect, child, showClient, cost }: RowProps) {
-  const ctx = contextTokens({ input: s.input_tokens, cacheRead: s.cache_read_tokens, cacheWrite: s.cache_write_tokens });
   return (
     <div className={`s-row ${active ? "active" : ""} ${inGroup && !active ? "in-group" : ""} ${child ? "child" : ""}`} onClick={() => onSelect(s.id)}>
       <span className="s-tree">
@@ -290,7 +289,6 @@ function Row({ s, status, active, inGroup, now, kids = 0, open, onToggle, onSele
           {!child && <span className="s-model">{s.model ?? PROVIDER_LABEL[s.provider]}</span>}
           <span>{s.request_count} req</span>
           {kids > 0 && <span title="Subagents and side calls">+{kids} sub</span>}
-          <span title="Context tokens across requests (input + cache)">{fmtTokens(ctx)}</span>
           {cost > 0 && <span title={kids ? "Estimated cost, subagents included" : "Estimated cost"}>{fmtCost(cost)}</span>}
           <span className="ago">{fmtAgo(s.updated_at, now)}</span>
         </span>
