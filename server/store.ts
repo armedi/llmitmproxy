@@ -66,6 +66,8 @@ const SESSION_WINDOW_S = 24 * 3600;
 /** Bump when parsers change what they extract from responses, to re-parse stored ones. */
 const PARSER_VERSION = "2";
 
+const placeholders = (ids: unknown[]) => ids.map(() => "?").join(",");
+
 export class Store {
   db: Database;
   pricing: Pricing;
@@ -436,8 +438,57 @@ export class Store {
       s.session_id && s.parent_id == null
         ? this.db.query<{ id: number }, [string]>("SELECT id FROM sessions WHERE session_id = ?").all(s.session_id).map((r) => r.id)
         : [id];
-    this.db.query(`DELETE FROM sessions WHERE id IN (${ids.map(() => "?").join(",")})`).run(...ids);
+    this.db.query(`DELETE FROM sessions WHERE id IN (${placeholders(ids)})`).run(...ids);
     return ids;
+  }
+
+  /**
+   * Delete requests that started before `cutoff` (epoch seconds), and sessions left with none.
+   * Sessions that keep some requests get their counts, tokens and latest request recomputed.
+   */
+  prune(cutoff: number): { deleted: number[]; updated: number[] } {
+    return this.db.transaction(() => {
+      const affected = this.db
+        .query<{ session_id: number }, [number]>("SELECT DISTINCT session_id FROM requests WHERE started_at < ?")
+        .all(cutoff)
+        .map((r) => r.session_id);
+      if (!affected.length) return { deleted: [], updated: [] };
+      this.db.query("DELETE FROM requests WHERE started_at < ?").run(cutoff);
+      const deleted = this.db
+        .query<{ id: number }, number[]>(
+          `DELETE FROM sessions WHERE id IN (${placeholders(affected)})
+             AND NOT EXISTS (SELECT 1 FROM requests r WHERE r.session_id = sessions.id) RETURNING id`,
+        )
+        .all(...affected)
+        .map((r) => r.id);
+      const updated = affected.filter((id) => !deleted.includes(id));
+      if (updated.length) {
+        // Same "latest" rule as ingest: the longest conversation, the newest on ties.
+        this.db
+          .query(
+            `WITH latest AS (
+               SELECT session_id, id, msg_count, error FROM (
+                 SELECT session_id, id, msg_count, error,
+                   row_number() OVER (PARTITION BY session_id ORDER BY msg_count DESC, id DESC) AS rn
+                 FROM requests WHERE session_id IN (${placeholders(updated)})
+               ) WHERE rn = 1
+             )
+             UPDATE sessions SET
+               request_count = (SELECT count(*) FROM requests r WHERE r.session_id = sessions.id),
+               created_at = (SELECT min(started_at) FROM requests r WHERE r.session_id = sessions.id),
+               latest_request_id = (SELECT id FROM latest WHERE latest.session_id = sessions.id),
+               latest_msg_count = (SELECT msg_count FROM latest WHERE latest.session_id = sessions.id),
+               last_error = (SELECT error FROM latest WHERE latest.session_id = sessions.id),
+               input_tokens = (SELECT coalesce(sum(json_extract(usage, '$.input')), 0) FROM requests r WHERE r.session_id = sessions.id),
+               output_tokens = (SELECT coalesce(sum(json_extract(usage, '$.output')), 0) FROM requests r WHERE r.session_id = sessions.id),
+               cache_read_tokens = (SELECT coalesce(sum(json_extract(usage, '$.cacheRead')), 0) FROM requests r WHERE r.session_id = sessions.id),
+               cache_write_tokens = (SELECT coalesce(sum(json_extract(usage, '$.cacheWrite')), 0) FROM requests r WHERE r.session_id = sessions.id)
+             WHERE id IN (${placeholders(updated)})`,
+          )
+          .run(...updated, ...updated);
+      }
+      return { deleted, updated };
+    })();
   }
 
   clear() {

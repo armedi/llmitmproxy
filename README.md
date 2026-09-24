@@ -55,6 +55,8 @@ mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmpro
 - **One run:** `mitmdump -s "$(mitllmproxy addon-path)"` (also works with `mitmweb`/`mitmproxy`).
 - **While it's running:** in mitmweb, go to Options → Edit Options → `scripts`. In the mitmproxy console, run `:set scripts=/path/...`. This replaces any scripts already set, so list those in the same command.
 
+Captures are kept for 7 days, counted from when each request was made, not when it was imported. Older requests are deleted when the server starts and every 10 minutes after that. Spooled captures that are already too old are deleted without being imported. To change the retention, use `--retention 12h`, `--retention 2w` and so on, or `--retention off` to keep everything.
+
 Only flows that arrive after the addon loads are captured. Captured data lives in `~/.mitllmproxy/`: the database `mitllmproxy.db` and the addon's spool `mitllmproxy.db-spool/`. If you start the server with `--db`, start mitmproxy with `MITLLMPROXY_DB` set to the same absolute path, since the spool directory is derived from the database path. The addon reads `MITLLMPROXY_DB` from the environment of the mitmproxy process, not from your shell, because mitmproxy loads the addon in its own Python process rather than through the `mitllmproxy` CLI.
 
 ### Point clients at the proxy

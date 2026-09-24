@@ -10,19 +10,26 @@ import type { IngestEvent } from "./types";
 /** Same default as the addon, which writes captures next to it. */
 export const DEFAULT_DB = resolve(homedir(), ".mitllmproxy", "mitllmproxy.db");
 export const DEFAULT_PORT = 4545;
+/** Captures older than this, by request start time, are deleted. */
+export const DEFAULT_RETENTION_S = 7 * 86400;
 const SPOOL_BATCH = 200;
+const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 
 export interface StartOptions {
   port?: number;
   host?: string;
   db?: string;
   dev?: boolean;
+  /** Seconds to keep captures, counted from each request's start time; 0 keeps them forever. */
+  retention?: number;
 }
 
 export async function startServer(opts: StartOptions = {}) {
   const dbPath = opts.db ?? DEFAULT_DB;
   mkdirSync(dirname(dbPath), { recursive: true });
   const store = new Store(dbPath);
+  const retention = opts.retention ?? DEFAULT_RETENTION_S;
+  const cutoff = () => (retention > 0 ? Date.now() / 1000 - retention : undefined);
 
   const json = (data: unknown, status = 200) => Response.json(data, { status });
   const idParam = (req: { params: { id: string } }) => Number(req.params.id);
@@ -99,7 +106,7 @@ export async function startServer(opts: StartOptions = {}) {
       // Keep going while batches come back full, so a backlog is imported in one pass.
       let batch: Imported[];
       do {
-        batch = drainSpool(store, spool, SPOOL_BATCH);
+        batch = drainSpool(store, spool, SPOOL_BATCH, cutoff());
         for (const { sessionId, requestId, state } of batch) {
           server.publish("updates", JSON.stringify({ type: "update", session: store.getSession(sessionId), requestId, state }));
         }
@@ -111,9 +118,39 @@ export async function startServer(opts: StartOptions = {}) {
   drain();
   setInterval(drain, 300);
 
-  console.log(`UI:       ${server.url}`);
-  console.log(`database: ${store.db.filename}`);
-  console.log(`spool:    ${spool}`);
+  const prune = () => {
+    const before = cutoff();
+    if (before === undefined) return;
+    try {
+      const { deleted, updated } = store.prune(before);
+      if (deleted.length) server.publish("updates", JSON.stringify({ type: "deleted", ids: deleted }));
+      for (const id of updated) server.publish("updates", JSON.stringify({ type: "update", session: store.getSession(id) }));
+    } catch (e) {
+      console.error("pruning old captures failed", e);
+    }
+  };
+  prune();
+  setInterval(prune, PRUNE_INTERVAL_MS);
+
+  console.log(`UI:        ${server.url}`);
+  console.log(`database:  ${store.db.filename}`);
+  console.log(`spool:     ${spool}`);
+  console.log(`retention: ${retention > 0 ? formatDuration(retention) : "forever"}`);
 
   return server;
+}
+
+const UNITS: [string, number][] = [["w", 7 * 86400], ["d", 86400], ["h", 3600], ["m", 60], ["s", 1]];
+
+/** Parse a duration like `7d`, `12h`, `30m` or `2w` into seconds; `0` or `off` means keep forever. */
+export function parseDuration(text: string): number | undefined {
+  if (text === "0" || text === "off") return 0;
+  const m = /^(\d+)([wdhms])$/.exec(text.trim());
+  const size = m && UNITS.find(([u]) => u === m[2])?.[1];
+  return m && size && Number(m[1]) > 0 ? Number(m[1]) * size : undefined;
+}
+
+function formatDuration(seconds: number): string {
+  const [unit, size] = UNITS.find(([, s]) => seconds % s === 0)!;
+  return `${seconds / size}${unit}`;
 }

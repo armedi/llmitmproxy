@@ -17,6 +17,8 @@ Options for start:
       --host <address>  Bind address (default 127.0.0.1)
       --db <path>       Path to the SQLite database file (default ~/.mitllmproxy/mitllmproxy.db).
                         Start mitmproxy with MITLLMPROXY_DB set to the same path.
+      --retention <age> Delete captures older than this, by request time: e.g. 12h, 7d, 2w,
+                        or 0/off to keep them forever (default 7d)
       --dev             Enable hot reload / dev logging
   -h, --help            Show this help
 `);
@@ -36,6 +38,7 @@ if (command === "addon-path") {
       port: { type: "string", short: "p" },
       host: { type: "string" },
       db: { type: "string" },
+      retention: { type: "string" },
       dev: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
@@ -47,8 +50,14 @@ if (command === "addon-path") {
     process.exit(0);
   }
 
-  const { startServer } = await import("../server/index.ts");
+  const { parseDuration, startServer } = await import("../server/index.ts");
+  const retention = values.retention === undefined ? undefined : parseDuration(values.retention);
+  if (values.retention !== undefined && retention === undefined) {
+    console.error(`Invalid --retention "${values.retention}": use e.g. 12h, 7d, 2w, or 0/off`);
+    process.exit(1);
+  }
   await startServer({
+    retention,
     port: values.port ? Number(values.port) : undefined,
     host: values.host,
     db: values.db ? resolve(process.cwd(), values.db) : undefined,

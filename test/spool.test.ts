@@ -54,6 +54,15 @@ describe("addon spool", () => {
     expect(drainSpool(store, dir)).toHaveLength(0);
   });
 
+  test("expired events are deleted without being imported and don't use up the batch", () => {
+    const turns = anthropicTurns();
+    turns.forEach(enqueue);
+    const out = drainSpool(store, dir, 1, turns[2]!.started_at);
+    expect(out).toHaveLength(1);
+    expect(readdirSync(dir)).toHaveLength(0);
+    expect(store.listSessions()[0]!.request_count).toBe(1);
+  });
+
   test("ignores in-progress temp files and respects the batch limit", () => {
     writeFileSync(join(dir, ".00000000000000000000-1-00000001.json.tmp"), "{");
     anthropicTurns().forEach(enqueue);
