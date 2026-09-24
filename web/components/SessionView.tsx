@@ -109,41 +109,44 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
               Stats
             </button>
           </div>
-          <div className="session-meta">
+          <div className="session-meta readout">
             {session.client && <ClientTag client={session.client} />}
-            {session.model && <span className="chip model">{session.model}</span>}
-            <span className="muted">
-              {session.request_count} request{session.request_count === 1 ? "" : "s"} · started {fmtTime(session.created_at)}
-            </span>
+            {session.model && <span className="model">{session.model}</span>}
             <span
-              className="chip cost"
+              className="cost"
               title={`Estimated from list prices${session.unpriced ? ` · ${session.unpriced} requests with an unknown model price` : ""}${groupCost ? `\nthis session ${fmtCost(session.cost)}, with subagents ${fmtCost(session.group_cost)}` : ""}`}
             >
               {fmtCost(groupCost ? session.group_cost : session.cost)}
               {groupCost && <span className="muted"> incl. subagents</span>}
               {session.unpriced > 0 && <span className="muted">*</span>}
             </span>
+            <span>
+              {session.request_count} request{session.request_count === 1 ? "" : "s"}
+            </span>
+            <span>started {fmtTime(session.created_at)}</span>
+          </div>
+          <Related session={session} parent={parent} children={children} onSelect={onSelect} />
+          <div className="session-tabs">
+            <div className="tabs underline" role="tablist" title="Switch view (t)">
+              <button role="tab" aria-selected={tab === "conversation"} className={tab === "conversation" ? "on" : ""} onClick={() => showTab("conversation")}>
+                Conversation
+              </button>
+              <button role="tab" aria-selected={tab === "raw"} className={tab === "raw" ? "on" : ""} onClick={() => showTab("raw")}>
+                Raw
+              </button>
+            </div>
             <span className="spacer" />
             {tab === "conversation" && (
               <>
-                <button className={`ghost small ${focused ? "on" : ""}`} onClick={() => setFocused(!focused)} title="Only prompts and final answers (f)">
+                <button className={`toggle ${focused ? "on" : ""}`} aria-pressed={focused} onClick={() => setFocused(!focused)} title="Only prompts and final answers (f)">
                   Focused
                 </button>
-                <button className={`ghost small ${markdown ? "on" : ""}`} onClick={() => setMarkdown(!markdown)} title="Render message text as Markdown (m)">
+                <button className={`toggle ${markdown ? "on" : ""}`} aria-pressed={markdown} onClick={() => setMarkdown(!markdown)} title="Render message text as Markdown (m)">
                   Markdown
                 </button>
               </>
             )}
-            <div className="tabs" title="Switch view (t)">
-              <button className={tab === "conversation" ? "on" : ""} onClick={() => showTab("conversation")}>
-                Conversation
-              </button>
-              <button className={tab === "raw" ? "on" : ""} onClick={() => showTab("raw")}>
-                Raw
-              </button>
-            </div>
           </div>
-          <Related session={session} parent={parent} children={children} onSelect={onSelect} />
           {tab === "raw" && detail && (
             <div className="session-meta small">
               <RequestPicker requests={requests} shownId={shownId} onOpen={openRaw} />

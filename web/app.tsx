@@ -133,31 +133,42 @@ function App() {
       {sidebarOpen && (
         <aside className="sidebar">
           <header className="sidebar-head">
-            <div className="brand">
-              mitllmproxy <span className={`dot ${connected ? "on" : "off"}`} title={connected ? "live" : "disconnected"} />
-            </div>
-            <div className="head-actions">
-              <button className="ghost" onClick={cycleTheme} title="Theme: follow the system, light or dark">
-                {THEME_LABEL[theme]}
-              </button>
-              <button className="ghost" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)">
-                ?
-              </button>
-              <button className="ghost" onClick={() => setSidebarOpen(false)} title="Hide sidebar (b)">
-                ⟨
-              </button>
-              <button className="ghost danger" onClick={clearAll} disabled={!sessions.length} title="Delete all sessions (asks first)">
+            <div className="brand">mitllmproxy</div>
+            <span className={`live ${connected ? "on" : "off"}`} title={connected ? "Receiving updates from the server" : "Lost the connection to the server; retrying"}>
+              {connected ? "live" : "offline"}
+            </span>
+            <span className="spacer" />
+            <button className="ghost small" onClick={cycleTheme} title="Theme: follow the system, light or dark">
+              {THEME_LABEL[theme]}
+            </button>
+            <button className="ghost small icon" onClick={() => setHelp(true)} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
+              ?
+            </button>
+            <button className="ghost small icon" onClick={() => setSidebarOpen(false)} title="Hide sidebar (b)" aria-label="Hide sidebar">
+              ⟨
+            </button>
+          </header>
+          <SessionList
+            sessions={sessions}
+            groups={groups}
+            children={children}
+            filters={filters}
+            onFilters={setFilters}
+            selected={selected}
+            onSelect={select}
+            now={now}
+            footer={
+              <button className="ghost small danger" onClick={clearAll} disabled={!sessions.length} title="Delete all sessions (asks first)">
                 Delete all
               </button>
-            </div>
-          </header>
-          <SessionList sessions={sessions} groups={groups} children={children} filters={filters} onFilters={setFilters} selected={selected} onSelect={select} now={now} />
+            }
+          />
           <div className="resize-handle right" onPointerDown={sidebar.onPointerDown} />
         </aside>
       )}
       <main className="main">
         {!sidebarOpen && (
-          <button className="ghost sidebar-show" onClick={() => setSidebarOpen(true)} title="Show sidebar (b)">
+          <button className="ghost small icon sidebar-show" onClick={() => setSidebarOpen(true)} title="Show sidebar (b)" aria-label="Show sidebar">
             ⟩
           </button>
         )}

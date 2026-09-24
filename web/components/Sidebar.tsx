@@ -104,9 +104,11 @@ interface Props {
   selected: number | null;
   onSelect: (id: number) => void;
   now: number;
+  /** Actions shown beside the session count, under the list. */
+  footer?: React.ReactNode;
 }
 
-export function SessionList({ sessions, groups, children, filters, onFilters, selected, onSelect, now }: Props) {
+export function SessionList({ sessions, groups, children, filters, onFilters, selected, onSelect, now, footer }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [folded, setFolded] = useState<Set<string>>(new Set());
   const current = sessions.find((s) => s.id === selected);
@@ -181,10 +183,6 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
             </div>
           </details>
         </div>
-        <div className="list-count muted">
-          {total} session{total === 1 ? "" : "s"}
-          {total !== sessions.filter((s) => s.parent_id == null).length && " (filtered)"}
-        </div>
       </div>
       <ul className="session-list">
         {groups.map((g) => (
@@ -238,6 +236,13 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
           </li>
         )}
       </ul>
+      <footer className="sidebar-foot">
+        <span className="list-count">
+          {total} session{total === 1 ? "" : "s"}
+          {total !== sessions.filter((s) => s.parent_id == null).length && " (filtered)"}
+        </span>
+        {footer}
+      </footer>
     </>
   );
 }
@@ -264,7 +269,14 @@ interface RowProps {
 
 function Row({ s, status, active, inGroup, now, kids = 0, open, onToggle, onSelect, child, showClient, cost }: RowProps) {
   return (
-    <div className={`s-row ${active ? "active" : ""} ${inGroup && !active ? "in-group" : ""} ${child ? "child" : ""}`} onClick={() => onSelect(s.id)}>
+    <div
+      className={`s-row ${active ? "active" : ""} ${inGroup && !active ? "in-group" : ""} ${child ? "child" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-current={active || undefined}
+      onClick={() => onSelect(s.id)}
+      onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && onSelect(s.id)}
+    >
       <span className="s-tree">
         {kids > 0 && (
           <button

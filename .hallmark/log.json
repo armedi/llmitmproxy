@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-09-24",
+    "scope": "app",
+    "genre": "modern-minimal",
+    "macrostructure": "Workbench (app)",
+    "theme": "Cobalt",
+    "enrichment": "none",
+    "nav": "sidebar rail",
+    "footer": "rail foot",
+    "brief": "mitllmproxy · live viewer for debugging LLM calls; ledger transcript, light/dark following the system"
+  }
+]

@@ -92,17 +92,17 @@ export function Conversation({ detail, requests, sessionModel, focused, find, on
     <Thread.Provider value={thread}>
       <div className="conversation" ref={root}>
         {!focused && n.system.length > 0 && (
-          <Section title="System prompt" count={n.system.length > 1 ? `${n.system.length} blocks` : undefined}>
+          <Section label="system" title="System prompt" count={n.system.length > 1 ? `${n.system.length} blocks` : undefined}>
             <SystemBlocks blocks={n.system} />
           </Section>
         )}
         {!focused && n.tools.length > 0 && (
-          <Section title="Tools" count={String(n.tools.length)}>
+          <Section label="tools" title="Tool definitions" count={String(n.tools.length)}>
             <Tools tools={n.tools} />
           </Section>
         )}
         {!focused && params.length > 0 && (
-          <Section title="Parameters" count={String(params.length)}>
+          <Section label="params" title="Parameters" count={String(params.length)}>
             <pre className="json">{JSON.stringify(Object.fromEntries(params), null, 2)}</pre>
           </Section>
         )}
@@ -139,8 +139,6 @@ function ItemView({ item, ...v }: ViewProps & { item: Item }) {
   }
 }
 
-const ROLE_ICON: Record<string, string> = { user: "U", assistant: "A", tool: "T", system: "S" };
-
 function MessageView({ item, turns, sessionModel, onOpenRequest, detail }: ViewProps & { item: MessageItem }) {
   const turn = item.role === "assistant" ? turns.get(item.index) : undefined;
   const pending = item.response && detail.state === "pending";
@@ -152,24 +150,27 @@ function MessageView({ item, turns, sessionModel, onOpenRequest, detail }: ViewP
       .join("\n\n");
   return (
     <div className={`msg ${item.role}`}>
-      <div className="msg-head">
-        <span className="role-icon">{ROLE_ICON[item.role] ?? "?"}</span>
+      <div className="gutter">
         <span className="role-label">{item.role}</span>
-        {pending && (
-          <span className="muted">
-            <span className="spinner" /> responding…
-          </span>
-        )}
-        <span className="spacer" />
-        {turn && <TurnMeta turn={turn} sessionModel={sessionModel} onOpenRequest={onOpenRequest} />}
-        <Copy text={text} className="hover-only" />
       </div>
-      {error && <div className="error-banner">{error}</div>}
-      {item.blocks.length > 0 ? (
-        <Blocks blocks={item.blocks} prose live={item.response} />
-      ) : (
-        !pending && !error && <div className="muted">{item.response ? "(empty response)" : "(empty)"}</div>
-      )}
+      <div className="msg-main">
+        <div className="msg-head">
+          {pending && (
+            <span className="muted">
+              <span className="spinner" /> responding…
+            </span>
+          )}
+          <span className="spacer" />
+          {turn && <TurnMeta turn={turn} sessionModel={sessionModel} onOpenRequest={onOpenRequest} />}
+          <Copy text={text} className="hover-only" />
+        </div>
+        {error && <div className="error-banner">{error}</div>}
+        {item.blocks.length > 0 ? (
+          <Blocks blocks={item.blocks} prose live={item.response} />
+        ) : (
+          !pending && !error && <div className="muted">{item.response ? "(empty response)" : "(empty)"}</div>
+        )}
+      </div>
     </div>
   );
 }
@@ -231,9 +232,21 @@ function TurnMeta({ turn: { request: r, ordinal }, sessionModel, onOpenRequest }
   );
 }
 
-function Section({ title, count, children }: { title: string; count?: string; children: React.ReactNode }) {
+function Section({ label, title, count, children }: { label: string; title: string; count?: string; children: React.ReactNode }) {
   return (
-    <LazyDetails className="section" summary={<>{title} {count && <span className="muted">· {count}</span>}</>}>
+    <LazyDetails
+      className="section"
+      summary={
+        <>
+          <span className="gutter">
+            <span className="role-label">{label}</span>
+          </span>
+          <span>
+            {title} {count && <span className="muted">· {count}</span>}
+          </span>
+        </>
+      }
+    >
       <div className="section-body">{children}</div>
     </LazyDetails>
   );

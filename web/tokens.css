@@ -1,0 +1,165 @@
+/* Hallmark · theme: Cobalt (app variant) · paper: cool light / cool graphite · display: grotesk-sans · accent: electric cobalt
+ * Every colour, font, size, space, radius and easing the UI uses. styles.css references these by name only.
+ */
+:root,
+:root[data-theme="dark"] {
+  /* surfaces: the transcript is paper; the side rails sit a step lower */
+  --color-paper: oklch(18.5% 0.012 260);
+  --color-paper-2: oklch(16% 0.011 260);
+  --color-paper-3: oklch(23% 0.015 260);
+  --color-paper-4: oklch(27% 0.017 260);
+  --color-band: oklch(21% 0.016 260);
+  --color-code: oklch(14% 0.01 260);
+  --color-rule: oklch(27% 0.016 260);
+  --color-rule-2: oklch(35% 0.018 260);
+  --color-ink: oklch(95% 0.006 255);
+  --color-ink-2: oklch(86% 0.01 255);
+  --color-muted: oklch(72% 0.016 257);
+  --color-faint: oklch(63% 0.016 257);
+  --color-accent: oklch(72% 0.15 256);
+  --color-accent-strong: oklch(80% 0.12 256);
+  --color-accent-ink: oklch(16% 0.011 260);
+  --color-accent-wash: oklch(72% 0.15 256 / 0.14);
+  --color-focus: oklch(76% 0.15 256);
+  --color-scrim: oklch(10% 0.01 260 / 0.62);
+  --color-shadow: oklch(5% 0.01 260 / 0.55);
+  --color-on-danger: oklch(99% 0.003 250);
+
+  --ok: oklch(76.5% 0.129 144.2);
+  --bad: oklch(70.1% 0.157 18.6);
+  --warn: oklch(78.4% 0.106 75.4);
+  --mark: oklch(78.4% 0.106 75.4 / 0.33);
+  --mark-current: oklch(78.4% 0.106 75.4 / 0.67);
+  /* tool categories: validated categorical palette, fixed order (dark steps) */
+  --cat-read: oklch(62.2% 0.161 255.1);
+  --cat-edit: oklch(62.2% 0.173 40.1);
+  --cat-bash: oklch(62.1% 0.128 163.1);
+  --cat-search: oklch(67% 0.143 73.2);
+  --cat-task: oklch(62.2% 0.171 0.8);
+  --cat-web: oklch(52.9% 0.18 142.5);
+  --cat-todo: oklch(67% 0.145 286.8);
+  --cat-mcp: oklch(66.9% 0.159 22.3);
+  --cat-other: oklch(55.3% 0.031 269.4);
+  /* status: reserved, always shown with a label or tooltip */
+  --st-working: oklch(62.1% 0.207 142.6);
+  --st-waiting: oklch(73.7% 0.086 76.5);
+  --st-stale: oklch(81.1% 0.164 78.5);
+  --st-error: oklch(57.5% 0.186 25.2);
+  --diff-add: oklch(66.9% 0.141 162.1 / 0.13);
+  --diff-add-ink: oklch(84.2% 0.105 157.2);
+  --diff-del: oklch(62.3% 0.191 24.9 / 0.13);
+  --diff-del-ink: oklch(79.5% 0.097 19.4);
+  --hunk: oklch(71.9% 0.132 264.2);
+  --tok-keyword: oklch(74.3% 0.135 311.1);
+  --tok-string: oklch(83.4% 0.092 141);
+  --tok-number: oklch(78.4% 0.106 75.4);
+  --tok-comment: oklch(58% 0.03 262);
+  --tok-title: oklch(74.4% 0.131 264.3);
+  --tok-attr: oklch(86.9% 0.128 81.1);
+  --tok-meta: oklch(85.6% 0.094 225.9);
+  --jt-key: oklch(79.5% 0.103 265.8);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --color-paper: oklch(99% 0.003 250);
+  --color-paper-2: oklch(97% 0.005 252);
+  --color-paper-3: oklch(94.5% 0.007 254);
+  --color-paper-4: oklch(91.5% 0.009 255);
+  --color-band: oklch(96.8% 0.008 254);
+  --color-code: oklch(96.5% 0.006 252);
+  --color-rule: oklch(91% 0.008 256);
+  --color-rule-2: oklch(84% 0.011 256);
+  --color-ink: oklch(24% 0.02 258);
+  --color-ink-2: oklch(33% 0.018 257);
+  --color-muted: oklch(46% 0.016 257);
+  --color-faint: oklch(52% 0.014 257);
+  --color-accent: oklch(52% 0.2 258);
+  --color-accent-strong: oklch(44% 0.19 258);
+  --color-accent-ink: oklch(99% 0.003 250);
+  --color-accent-wash: oklch(52% 0.2 258 / 0.09);
+  --color-focus: oklch(55% 0.2 258);
+  --color-scrim: oklch(30% 0.02 258 / 0.32);
+  --color-shadow: oklch(24% 0.02 258 / 0.14);
+  --color-on-danger: oklch(99% 0.003 250);
+
+  --ok: oklch(52.2% 0.159 142.9);
+  --bad: oklch(54.5% 0.188 26.1);
+  --warn: oklch(55% 0.117 73.3);
+  --mark: oklch(81.1% 0.164 78.5 / 0.33);
+  --mark-current: oklch(81.1% 0.164 78.5 / 0.67);
+  --cat-read: oklch(57.5% 0.163 255.5);
+  --cat-edit: oklch(67.1% 0.175 40.6);
+  --cat-bash: oklch(66.9% 0.141 162.1);
+  --cat-search: oklch(76.4% 0.161 75.1);
+  --cat-task: oklch(71.6% 0.141 357.4);
+  --cat-web: oklch(52.9% 0.18 142.5);
+  --cat-todo: oklch(43.3% 0.167 283.6);
+  --cat-mcp: oklch(62.3% 0.191 24.9);
+  --cat-other: oklch(66% 0.014 257);
+  --st-working: oklch(62.1% 0.207 142.6);
+  --st-waiting: oklch(65.3% 0.088 74.5);
+  --st-stale: oklch(74.5% 0.156 76.8);
+  --st-error: oklch(57.5% 0.186 25.2);
+  --diff-add: oklch(66.9% 0.141 162.1 / 0.15);
+  --diff-add-ink: oklch(42.8% 0.089 161);
+  --diff-del: oklch(62.3% 0.191 24.9 / 0.13);
+  --diff-del-ink: oklch(42.6% 0.15 26.4);
+  --hunk: oklch(50.9% 0.147 258.5);
+  --tok-keyword: oklch(52.2% 0.188 309.9);
+  --tok-string: oklch(51.5% 0.133 143.3);
+  --tok-number: oklch(53.7% 0.124 61.5);
+  --tok-comment: oklch(58% 0.014 257);
+  --tok-title: oklch(48.5% 0.146 260.6);
+  --tok-attr: oklch(53.1% 0.119 65.1);
+  --tok-meta: oklch(50.6% 0.094 227.6);
+  --jt-key: oklch(48.5% 0.146 260.6);
+  color-scheme: light;
+}
+
+:root {
+  --font-display: "Space Grotesk Variable", "Inter Variable", system-ui, sans-serif;
+  --font-body: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* type: 13px chrome, 14px prose, mono readouts a step smaller */
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.1875rem;
+  --leading-tight: 1.3;
+  --leading: 1.5;
+  --leading-prose: 1.62;
+  --tracking-label: 0.07em;
+  --tracking-display: -0.015em;
+
+  /* 4-point scale */
+  --space-4xs: 0.125rem;
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+
+  /* the transcript's label column */
+  --gutter: 6.5rem;
+  --measure: 75ch;
+  --control-h: 1.75rem;
+  --control-h-sm: 1.5rem;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --rule: 1px solid var(--color-rule);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-instant: 90ms;
+  --dur-short: 140ms;
+  --dur-med: 220ms;
+}
