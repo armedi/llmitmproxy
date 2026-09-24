@@ -33,6 +33,8 @@ describe("retention", () => {
     expect(s.input_tokens).toBe(kept.reduce((n, u) => n + (u?.input ?? 0), 0));
     expect(s.input_tokens).toBeLessThan(before.input_tokens);
     expect(s.output_tokens).toBe(kept.reduce((n, u) => n + (u?.output ?? 0), 0));
+    const keptCost = store.listRequests(s.id).reduce((n, r) => n + (r.cost ?? 0), 0);
+    expect(s.cost).toBeCloseTo(keptCost);
   });
 
   test("age comes from the request's start time, not when it was stored", () => {

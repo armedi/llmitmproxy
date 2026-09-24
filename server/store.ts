@@ -482,7 +482,9 @@ export class Store {
                input_tokens = (SELECT coalesce(sum(json_extract(usage, '$.input')), 0) FROM requests r WHERE r.session_id = sessions.id),
                output_tokens = (SELECT coalesce(sum(json_extract(usage, '$.output')), 0) FROM requests r WHERE r.session_id = sessions.id),
                cache_read_tokens = (SELECT coalesce(sum(json_extract(usage, '$.cacheRead')), 0) FROM requests r WHERE r.session_id = sessions.id),
-               cache_write_tokens = (SELECT coalesce(sum(json_extract(usage, '$.cacheWrite')), 0) FROM requests r WHERE r.session_id = sessions.id)
+               cache_write_tokens = (SELECT coalesce(sum(json_extract(usage, '$.cacheWrite')), 0) FROM requests r WHERE r.session_id = sessions.id),
+               cost = (SELECT coalesce(sum(cost), 0) FROM requests r WHERE r.session_id = sessions.id),
+               unpriced = (SELECT count(*) FROM requests r WHERE r.session_id = sessions.id AND r.usage IS NOT NULL AND r.cost IS NULL)
              WHERE id IN (${placeholders(updated)})`,
           )
           .run(...updated, ...updated);
