@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "start": "bun bin/mitllmproxy",
-    "dev": "bun --hot bin/mitllmproxy --dev --port 4546 --db ./mitllmproxy-dev.db",
+    "dev": "bun --hot bin/mitllmproxy --dev",
     "replay": "bun scripts/replay.ts",
     "dev:replay": "MITLLMPROXY_URL=http://127.0.0.1:4546/ingest bun scripts/replay.ts",
     "update-pricing": "bun scripts/update-pricing.ts",
