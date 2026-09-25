@@ -8,7 +8,7 @@ const SHORTCUTS: [string, string][] = [
   ["Enter / Shift+Enter", "Next / previous match"],
   ["t", "Switch Conversation / Raw"],
   ["f", "Focused mode: prompts and final answers only"],
-  ["m", "Markdown / plain text"],
+  ["m", "Formatted / plain text"],
   ["v", "Show / hide the stats panel"],
   ["b", "Show / hide the sidebar"],
   ["Esc", "Close find or this help; in Raw, return to the latest request"],

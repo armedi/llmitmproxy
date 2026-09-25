@@ -1361,6 +1361,62 @@ input[type="search"]::-webkit-search-decoration {
   font-size: var(--text-xs);
   color: var(--color-muted);
 }
+.text > * + * {
+  margin-top: var(--space-2xs);
+}
+.text > .xml + .xml {
+  margin-top: var(--space-4xs);
+}
+.xml > summary {
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: baseline;
+  min-width: 0;
+  width: fit-content;
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-muted);
+  list-style: none;
+}
+.xml > summary::-webkit-details-marker {
+  display: none;
+}
+.xml > summary:hover {
+  color: var(--color-ink);
+}
+.xml > summary::before {
+  content: "▸";
+  color: var(--color-faint);
+}
+.xml[open] > summary::before {
+  content: "▾";
+}
+.x-tag {
+  white-space: nowrap;
+}
+.x-preview {
+  color: var(--color-faint);
+}
+.x-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.xml > .text {
+  margin: var(--space-3xs) 0 var(--space-2xs) var(--space-3xs);
+  padding-left: var(--space-xs);
+  border-left: var(--rule);
+  font-size: 0.95em;
+}
+.x-close {
+  margin-bottom: var(--space-2xs);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-faint);
+}
 .b-label {
   font-family: var(--font-mono);
   text-transform: uppercase;

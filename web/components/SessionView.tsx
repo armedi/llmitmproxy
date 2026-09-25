@@ -5,7 +5,7 @@ import { useKeys, useResizable, useStored } from "../hooks";
 import { ClientTag, kindLabel } from "./Sidebar";
 import { Conversation, type FindResult, type FindState } from "./Conversation";
 import { FindBar, FindRail } from "./FindBar";
-import { MarkdownMode } from "./Markdown";
+import { Formatted } from "./Markdown";
 import { Raw } from "./Raw";
 import { Vitals } from "./Vitals";
 
@@ -28,7 +28,7 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
   const [requests, setRequests] = useState<RequestSummary[]>([]);
   // A request in the URL means someone opened it to inspect, which only the Raw view does.
   const [tab, setTab] = useState<"conversation" | "raw">(requestId != null ? "raw" : "conversation");
-  const [markdown, setMarkdown] = useState(() => localStorage.getItem("textMode") !== "plain");
+  const [formatted, setFormatted] = useState(() => localStorage.getItem("textMode") !== "plain");
   const [focused, setFocused] = useStored("focused", false);
   const [showVitals, setShowVitals] = useStored("vitals", true);
   const [find, setFind] = useState<FindState | null>(null);
@@ -37,7 +37,7 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
 
-  useEffect(() => localStorage.setItem("textMode", markdown ? "markdown" : "plain"), [markdown]);
+  useEffect(() => localStorage.setItem("textMode", formatted ? "markdown" : "plain"), [formatted]);
 
   // Every request in the session, for the per-turn stats, vitals and the Raw view's picker.
   useEffect(() => {
@@ -88,7 +88,7 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
     t: () => showTab(tab === "conversation" ? "raw" : "conversation"),
     f: () => setFocused((f) => !f),
     v: () => setShowVitals((v) => !v),
-    m: () => setMarkdown((m) => !m),
+    m: () => setFormatted((m) => !m),
     // Raw tab keeps the browser's own find, which searches the full text view.
     "mod+f": () => (tab === "conversation" ? setFind((f) => f ?? { query: "", cursor: 0 }) : false),
     Escape: () => (find ? setFind(null) : requestId != null ? onOpenRequest(null) : false),
@@ -144,8 +144,8 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
                 <button className={`toggle ${focused ? "on" : ""}`} aria-pressed={focused} onClick={() => setFocused(!focused)} title="Only prompts and final answers (f)">
                   Focused
                 </button>
-                <button className={`toggle ${markdown ? "on" : ""}`} aria-pressed={markdown} onClick={() => setMarkdown(!markdown)} title="Render message text as Markdown (m)">
-                  Markdown
+                <button className={`toggle ${formatted ? "on" : ""}`} aria-pressed={formatted} onClick={() => setFormatted(!formatted)} title="Render message text as Markdown and fold XML tags (m)">
+                  Formatted
                 </button>
               </>
             )}
@@ -175,7 +175,7 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
             {!detail ? (
               <div className="placeholder">Loading…</div>
             ) : tab === "conversation" ? (
-              <MarkdownMode.Provider value={markdown}>
+              <Formatted.Provider value={formatted}>
                 <Conversation
                   detail={detail}
                   requests={requests}
@@ -185,7 +185,7 @@ export function SessionView({ session, parent, children, onSelect, requestId, on
                   onFind={setFound}
                   onOpenRequest={openRaw}
                 />
-              </MarkdownMode.Provider>
+              </Formatted.Provider>
             ) : (
               <Raw detail={detail} />
             )}

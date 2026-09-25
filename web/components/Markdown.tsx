@@ -4,6 +4,7 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import type { Element, Root as HastRoot } from "hast";
 import type { Html, Root } from "mdast";
+import { nextFence } from "../transcript/fence";
 
 const HIGHLIGHT_LIMIT = 50_000;
 
@@ -48,8 +49,11 @@ function remarkLiteralHtml() {
   };
 }
 
-/** Global "Markdown / Plain" switch. Only message prose honors it; tool args/results are always plain. */
-export const MarkdownMode = createContext(true);
+/**
+ * Global "Formatted / Plain" switch. Formatted folds XML sections and renders message prose as
+ * markdown (tool args/results stay raw text); Plain shows everything raw.
+ */
+export const Formatted = createContext(true);
 
 const components: Components = {
   a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
@@ -75,8 +79,6 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
   );
 });
 
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-
 /**
  * Cut markdown to roughly `limit` chars without leaving a code fence open: prefer a blank line
  * outside any fence, otherwise cut at a line boundary and close the open fence.
@@ -91,12 +93,7 @@ export function clampMarkdown(text: string, limit: number): string {
   for (const line of text.split("\n")) {
     const end = pos + line.length;
     if (end > limit) break;
-    const m = FENCE.exec(line);
-    if (m) {
-      const marker = m[1]!;
-      if (fence == null) fence = marker;
-      else if (marker[0] === fence[0] && marker.length >= fence.length && line.trim() === marker) fence = null;
-    }
+    fence = nextFence(fence, line);
     if (fence == null && line.trim() === "") lastBreak = pos;
     lastLine = end;
     fenceAtLastLine = fence;

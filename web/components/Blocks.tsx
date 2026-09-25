@@ -1,10 +1,14 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import type { Block } from "../api";
-import { type Boundary, boundaryOf, type ToolResult } from "../transcript/items";
-import { clampMarkdown, Markdown, MarkdownMode } from "./Markdown";
+import { nextFence } from "../transcript/fence";
+import { type Boundary, boundaryOf, isInjectedTag, type ToolResult } from "../transcript/items";
+import { parseXml, type XmlElement, type XmlNode } from "../transcript/xml";
+import { clampMarkdown, Formatted, Markdown } from "./Markdown";
 import { Parallel, ToolCall } from "./ToolCall";
 
 const CLAMP = 1600;
+/** What a collapsed XML section counts for when deciding to clamp. */
+const SECTION_COST = 80;
 
 /** What blocks need to know about the thread they sit in. */
 export interface ThreadInfo {
@@ -48,12 +52,12 @@ function BlockView({ block: b, prose, live }: { block: Block; prose: boolean; li
   switch (b.type) {
     case "text": {
       const boundary = prose ? boundaryOf(b.text) : undefined;
-      return boundary ? <BoundaryCard boundary={boundary} /> : <Text text={b.text} markdown={prose} />;
+      return boundary ? <BoundaryCard boundary={boundary} /> : <Text text={b.text} markdown={prose} fold={prose ? "all" : "injected"} />;
     }
     case "thinking":
       return (
         <LazyDetails className="thinking" summary={b.redacted || !b.text ? "Thinking (not returned by the API)" : `Thinking · ${b.text.length.toLocaleString()} chars`}>
-          {b.text && <Text text={b.text} markdown />}
+          {b.text && <Text text={b.text} markdown fold="all" />}
         </LazyDetails>
       );
     case "tool_use":
@@ -115,7 +119,7 @@ export function BoundaryCard({ boundary: b }: { boundary: Boundary }) {
         </>
       }
     >
-      <Text text={b.body} />
+      <Text text={b.body} nodes={b.nodes} fold="all" />
     </LazyDetails>
   );
 }
@@ -148,22 +152,124 @@ export function LazyDetails({
   );
 }
 
-export function Text({ text, markdown = false }: { text: string; markdown?: boolean }) {
+/**
+ * Text, with XML sections folded when formatting is on. `fold`: which sections, "all" for prompt
+ * text, "injected" for tool output (only the context an agent appends, since the output itself may
+ * be HTML or code); tool args don't fold. `nodes`: the text already parsed. `markdown` renders the
+ * prose as markdown.
+ */
+export function Text({
+  text,
+  nodes: parsed,
+  markdown = false,
+  fold,
+}: {
+  text: string;
+  nodes?: XmlNode[];
+  markdown?: boolean;
+  fold?: "all" | "injected";
+}) {
+  const formatted = useContext(Formatted);
+  const nodes = useMemo(
+    () => (!formatted || !fold ? [text] : (parsed ?? parseXml(text, fold === "injected" ? isInjectedTag : undefined))),
+    [text, parsed, formatted, fold],
+  );
+  const md = markdown && formatted;
+  // The prose between sections renders as separate markdown documents; each needs the whole text's link definitions.
+  const defs = useMemo(() => (md && nodes.some((n) => typeof n !== "string") ? linkDefs(text) : []), [md, nodes, text]);
+  return <Nodes nodes={nodes} markdown={md} defs={defs} />;
+}
+
+const LINK_DEF = /^[ \t]*\[\^?[^\]\n]+\]:[ \t]*\S/;
+
+/** Link reference and footnote definition lines outside code fences (a footnote's first line only). */
+function linkDefs(text: string): string[] {
+  const defs: string[] = [];
+  let fence: string | null = null;
+  for (const line of text.split("\n")) {
+    const next = nextFence(fence, line);
+    if (fence == null && next == null && LINK_DEF.test(line)) defs.push(line.trim());
+    fence = next;
+  }
+  return defs;
+}
+
+function withDefs(text: string, defs: string[]): string {
+  const missing = defs.filter((d) => !text.includes(d));
+  return missing.length ? `${text}\n\n${missing.join("\n")}` : text;
+}
+
+function Nodes({ nodes, markdown, defs }: { nodes: XmlNode[]; markdown: boolean; defs: string[] }) {
   const [open, setOpen] = useState(false);
-  const enabled = useContext(MarkdownMode);
   const force = useContext(ForceOpen);
-  const long = text.length > CLAMP;
-  const md = markdown && enabled;
+  const long = nodes.reduce((a, n) => a + (typeof n === "string" ? n.length : SECTION_COST), 0) > CLAMP;
   const full = !long || open || force;
-  const shown = useMemo(() => (full ? text : md ? clampMarkdown(text, CLAMP) : text.slice(0, CLAMP) + "…"), [text, full, md]);
+  const shown = useMemo(() => (full ? nodes : clampNodes(nodes, markdown)), [nodes, full, markdown]);
   return (
     <div className="text">
-      {md ? <Markdown text={shown} /> : <pre>{shown}</pre>}
+      {shown.map((n, i) =>
+        typeof n !== "string" ? (
+          <XmlSection key={i} el={n} markdown={markdown} defs={defs} />
+        ) : markdown ? (
+          <Markdown key={i} text={withDefs(n, defs)} />
+        ) : (
+          <pre key={i}>{n}</pre>
+        ),
+      )}
       {long && !force && (
         <button className="link" onClick={() => setOpen(!open)}>
-          {open ? "Show less" : `Show all (${text.length.toLocaleString()} chars)`}
+          {open ? "Show less" : `Show all (${sizeLabel(nodes)})`}
         </button>
       )}
     </div>
+  );
+}
+
+/** The prose chars and folded sections the nodes hold, e.g. "1,200 chars, 3 sections". */
+function sizeLabel(nodes: XmlNode[]): string {
+  const chars = nodes.reduce((a, n) => a + (typeof n === "string" ? n.length : 0), 0);
+  const sections = nodes.filter((n) => typeof n !== "string").length;
+  const parts = [`${chars.toLocaleString()} chars`];
+  if (sections) parts.push(`${sections.toLocaleString()} section${sections === 1 ? "" : "s"}`);
+  return parts.join(", ");
+}
+
+/** Keep roughly CLAMP chars of prose; collapsed sections count as SECTION_COST and are never cut. */
+function clampNodes(nodes: XmlNode[], markdown: boolean): XmlNode[] {
+  const out: XmlNode[] = [];
+  let budget = CLAMP;
+  for (const n of nodes) {
+    if (budget <= 0) break;
+    if (typeof n !== "string") {
+      out.push(n);
+      budget -= SECTION_COST;
+    } else if (n.length <= budget) {
+      out.push(n);
+      budget -= n.length;
+    } else {
+      out.push(markdown ? clampMarkdown(n, budget) : n.slice(0, budget) + "…");
+      break;
+    }
+  }
+  return out;
+}
+
+function XmlSection({ el, markdown, defs }: { el: XmlElement; markdown: boolean; defs: string[] }) {
+  const first = el.children[0];
+  const preview = first == null ? "" : typeof first === "string" ? firstLine(first) : `<${first.tag}>`;
+  // Each tag is one text node, so find can highlight a search for it.
+  return (
+    <LazyDetails
+      className="xml"
+      summary={
+        <>
+          <span className="x-tag">{`<${el.tag}${el.attrs.trimEnd()}>`}</span>
+          <span className="x-preview">{preview}</span>
+        </>
+      }
+    >
+      <Nodes nodes={el.children} markdown={markdown} defs={defs} />
+      <div className="x-tag x-close">{`</${el.tag}>`}</div>
+    </LazyDetails>
   );
 }

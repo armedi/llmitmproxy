@@ -243,9 +243,6 @@ export class Store {
         }
         const client = detectClient(ev.request_headers ?? {});
         sessionId = this.findOrCreateSession(n, hashes, ev.started_at, client);
-        // A session started by a prewarm had no prompt to take its title from; the first real turn does.
-        if (hashes.length)
-          this.db.query("UPDATE sessions SET title = ? WHERE id = ? AND latest_msg_count = 0").run(titleFor(n), sessionId);
         requestId = Number(
           this.db
             .query(
@@ -268,15 +265,18 @@ export class Store {
               JSON.stringify(hashes),
             ).lastInsertRowid,
         );
+        // A session started by a prewarm had no prompt to take its title from; the first real turn does.
+        const retitle = hashes.length ? titleFor(n) : null;
         this.db
           .query(
             `UPDATE sessions SET request_count = request_count + 1, updated_at = max(updated_at, ?),
+               title = CASE WHEN latest_msg_count = 0 AND ? IS NOT NULL THEN ? ELSE title END,
                model = coalesce(?, model), client = coalesce(client, ?),
                latest_request_id = CASE WHEN ? >= latest_msg_count THEN ? ELSE latest_request_id END,
                latest_msg_count = max(latest_msg_count, ?)
              WHERE id = ?`,
           )
-          .run(ev.started_at, n.model ?? null, client, n.messages.length, requestId, n.messages.length, sessionId);
+          .run(ev.started_at, retitle, retitle, n.model ?? null, client, n.messages.length, requestId, n.messages.length, sessionId);
       }
 
       if (ev.state !== "pending") {

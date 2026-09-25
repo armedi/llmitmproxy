@@ -60,7 +60,8 @@ describe("display items", () => {
 
 describe("boundaries", () => {
   test("tag-only text is a boundary, mixed text is not", () => {
-    expect(boundaryOf("<system-reminder>\nhi\n</system-reminder>")).toEqual({ tag: "system-reminder", label: "System reminder", body: "hi" });
+    expect(boundaryOf("<system-reminder>\nhi\n</system-reminder>")).toEqual({ tag: "system-reminder", label: "System reminder", nodes: ["hi"], body: "hi" });
+    expect(boundaryOf("<command-name>/model</command-name>\n<command-args></command-args>")).toMatchObject({ label: "Slash command", body: "/model" });
     expect(boundaryOf("<system-reminder>x</system-reminder> and more")).toBeUndefined();
     expect(boundaryOf("plain")).toBeUndefined();
     // Unknown tags are the client's own prompt markup, shown as the user's text.

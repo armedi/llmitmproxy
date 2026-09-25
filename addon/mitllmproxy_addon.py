@@ -211,14 +211,15 @@ def _copier(flow: http.HTTPFlow, side: str):
 
 def _restore(flow: http.HTTPFlow, side: str) -> None:
     """Put the copied body back on the message once it has passed (a streamed message is otherwise
-    empty), so mitmweb shows it and the hooks can read it. The copy is released."""
+    empty), so mitmweb shows it and the hooks can read it. The copy is released. A body that was
+    too big to copy becomes missing (None), so it is recorded as uncaptured rather than empty."""
     key = f"mitllmproxy_{side}"
     if key not in flow.metadata:
         return
     chunks = flow.metadata.pop(key)
     msg = flow.request if side == "req" else flow.response
-    if msg is not None and chunks is not None:
-        msg.raw_content = b"".join(chunks)
+    if msg is not None:
+        msg.raw_content = None if chunks is None else b"".join(chunks)
 
 
 class MitLlmProxy:

@@ -281,7 +281,7 @@ function Tools({ tools }: { tools: ToolDef[] }) {
             <code className={`tool-name cat-${category(t.name)}`}>{t.name}</code>
             {t.description && <span className="muted"> — {t.description.split("\n")[0]!.slice(0, 140)}</span>}
           </summary>
-          {t.description && <Text text={t.description} />}
+          {t.description && <Text text={t.description} fold="all" />}
           {t.schema != null && <pre className="json">{JSON.stringify(t.schema, null, 2)}</pre>}
         </details>
       ))}

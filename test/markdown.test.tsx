@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { clampMarkdown, Markdown } from "../web/components/Markdown";
+import { ForceOpen, Text } from "../web/components/Blocks";
+import { clampMarkdown, Formatted, Markdown } from "../web/components/Markdown";
 
 const render = (text: string) => renderToStaticMarkup(<Markdown text={text} />);
 
@@ -55,5 +56,67 @@ describe("clampMarkdown", () => {
     const out = clampMarkdown(text, 120);
     expect(out).toContain("z".repeat(40) + "\n```");
     expect(out.match(/```/g)!.length % 2).toBe(0);
+  });
+});
+
+describe("Text", () => {
+  const text = (t: string, { markdown = true, formatted = true, force = false, fold = "all" as "all" | "injected" | "none" } = {}) =>
+    renderToStaticMarkup(
+      <Formatted.Provider value={formatted}>
+        <ForceOpen.Provider value={force}>
+          <Text text={t} markdown={markdown} fold={fold === "none" ? undefined : fold} />
+        </ForceOpen.Provider>
+      </Formatted.Provider>,
+    );
+  const sample = "Hi **there**\n<system-reminder>\nsecret *note*\n</system-reminder>";
+
+  test("folds XML sections, collapsed", () => {
+    const html = text(sample);
+    expect(html).toContain("<strong>there</strong>");
+    expect(html).toContain('<details class="xml">');
+    expect(html).toContain("&lt;system-reminder&gt;");
+    expect(html).toContain('<span class="x-preview">secret *note*</span>');
+    expect(html).not.toContain("<em>note</em>");
+  });
+
+  test("renders section bodies when forced open", () => {
+    expect(text(sample, { force: true })).toContain("<em>note</em>");
+  });
+
+  test("renders each tag as one text node, closing tag included", () => {
+    const html = text('<file path="a.ts">\nx\n</file>', { force: true });
+    expect(html).toContain('<span class="x-tag">&lt;file path=&quot;a.ts&quot;&gt;</span>');
+    expect(html).toContain('<div class="x-tag x-close">&lt;/file&gt;</div>');
+  });
+
+  test("tool output folds only injected context, as plain text", () => {
+    const out = "<html>\n<body>\n</body>\n</html>\n<system-reminder>\nx\n</system-reminder>";
+    const html = text(out, { markdown: false, force: true, fold: "injected" });
+    expect(html).toContain('<details class="xml" open="">');
+    expect(html).toContain("<pre>x</pre>");
+    expect(html).toContain("<pre>&lt;html&gt;\n&lt;body&gt;\n&lt;/body&gt;\n&lt;/html&gt;</pre>");
+  });
+
+  test("tool args don't fold", () => {
+    expect(text("<div>\nx\n</div>", { markdown: false, fold: "none" })).toBe('<div class="text"><pre>&lt;div&gt;\nx\n&lt;/div&gt;</pre></div>');
+  });
+
+  test("link definitions reach prose on the other side of a section", () => {
+    const html = text("See [docs][1]\n<example>\nx\n</example>\n[1]: https://x.com");
+    expect(html).toContain('<a href="https://x.com" target="_blank" rel="noopener noreferrer">docs</a>');
+  });
+
+  test("plain mode shows the raw text", () => {
+    const html = text(sample, { formatted: false });
+    expect(html).not.toContain("<details");
+    expect(html).toContain("<pre>Hi **there**\n&lt;system-reminder&gt;");
+  });
+
+  test("collapsed sections don't count toward the clamp", () => {
+    const html = text(`short\n<big>\n${"x".repeat(5000)}\n</big>`);
+    expect(html).not.toContain("Show all");
+    expect(text("y".repeat(5000))).toContain("Show all (5,000 chars)");
+    const many = Array.from({ length: 25 }, (_, i) => `<f>\n${"z".repeat(100)}${i}\n</f>`).join("\n");
+    expect(text(many)).toContain("Show all (0 chars, 25 sections)");
   });
 });
