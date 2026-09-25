@@ -63,7 +63,7 @@ export interface ToolGroupItem {
 export type Item = MessageItem | BoundaryItem | ToolGroupItem;
 
 /** tool_use id → its result, from any later message. */
-export function pairResults(messages: Message[]): Map<string, ToolResult> {
+function pairResults(messages: Message[]): Map<string, ToolResult> {
   const out = new Map<string, ToolResult>();
   for (const m of messages) for (const b of m.content) if (b.type === "tool_result" && b.toolUseId && !out.has(b.toolUseId)) out.set(b.toolUseId, b);
   return out;

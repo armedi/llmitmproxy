@@ -4,7 +4,7 @@ import type { SessionRow, Store } from "./store";
 /** Parse JSON bodies so the export is readable; SSE and other text stays a string. */
 const body = (text: string | null) => (text == null ? null : (tryJSON(text) ?? text));
 
-export function exportRequest(r: Record<string, any>) {
+function exportRequest(r: Record<string, any>) {
   return {
     id: r.id,
     state: r.state,

@@ -9,10 +9,10 @@ import type { IngestEvent } from "./types";
 import { uiRoutes } from "./ui";
 
 /** Same default as the addon, which writes captures next to it. */
-export const DEFAULT_DB = resolve(homedir(), ".mitllmproxy", "mitllmproxy.db");
-export const DEFAULT_PORT = 4545;
+const DEFAULT_DB = resolve(homedir(), ".mitllmproxy", "mitllmproxy.db");
+const DEFAULT_PORT = 4545;
 /** Captures older than this, by request start time, are deleted. */
-export const DEFAULT_RETENTION_S = 7 * 86400;
+const DEFAULT_RETENTION_S = 7 * 86400;
 const SPOOL_BATCH = 200;
 const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 

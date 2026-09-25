@@ -120,7 +120,7 @@ export function BoundaryCard({ boundary: b }: { boundary: Boundary }) {
   );
 }
 
-export const firstLine = (text: string) => text.trim().split("\n")[0]!.slice(0, 200);
+const firstLine = (text: string) => text.trim().split("\n")[0]!.slice(0, 200);
 
 /** A <details> whose body is only rendered once it has been opened. */
 export function LazyDetails({

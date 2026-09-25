@@ -119,7 +119,7 @@ export function Diff({ lines }: { lines: DiffLine[] }) {
   );
 }
 
-export function ToolInput({ input }: { input: unknown }) {
+function ToolInput({ input }: { input: unknown }) {
   if (input && typeof input === "object" && !Array.isArray(input)) {
     const entries = Object.entries(input);
     // Show short scalar args inline and long strings (commands, file contents) as text.

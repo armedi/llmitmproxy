@@ -87,7 +87,7 @@ export function anthropicTurns(sessionId = "3f1c2a9e-1111-2222-3333-444455556666
 
 // ---------------- OpenAI Chat Completions ----------------
 
-export const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
+const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 
 export function openaiChatTurns() {
   const sys = { role: "system", content: "You are a helpful assistant." };
@@ -118,7 +118,7 @@ export function openaiChatTurns() {
 
 // ---------------- OpenAI Responses (Codex-like) ----------------
 
-export const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 export function openaiResponsesTurns() {
   const tools = [{ type: "function", name: "shell", description: "Run shell", parameters: { type: "object" } }];
@@ -154,7 +154,7 @@ export function openaiResponsesTurns() {
 
 // ---------------- Codex over WebSocket (as the addon re-encodes it) ----------------
 
-export const CODEX_WS_URL = "https://chatgpt.com/backend-api/codex/responses";
+const CODEX_WS_URL = "https://chatgpt.com/backend-api/codex/responses";
 
 /** A prewarm (`generate: false`) and one real turn, with tools sent as an `additional_tools` input item. */
 export function codexWebSocketTurns(sessionId = "01a0d74e-cada-72d1-97d7-45d11814610d") {
@@ -213,7 +213,7 @@ export function codexTitleThread(threadId = "01a0d75b-4acb-79b2-9543-154a31fbce7
 
 // ---------------- Gemini ----------------
 
-export const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro:streamGenerateContent?alt=sse";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro:streamGenerateContent?alt=sse";
 
 export function geminiTurns() {
   const tools = [{ functionDeclarations: [{ name: "search_docs", description: "Search docs", parameters: { type: "object" } }] }];

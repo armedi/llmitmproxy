@@ -1,10 +1,10 @@
-export interface SSEEvent {
+interface SSEEvent {
   event?: string;
   data: string;
 }
 
 /** Parse a complete text/event-stream body into events. */
-export function parseSSE(body: string): SSEEvent[] {
+function parseSSE(body: string): SSEEvent[] {
   const events: SSEEvent[] = [];
   let event: string | undefined;
   let data: string[] = [];

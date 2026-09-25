@@ -13,13 +13,13 @@ const asString = (v: unknown): string | undefined => (typeof v === "string" && v
 const params = (input: unknown): Params => (input && typeof input === "object" && !Array.isArray(input) ? (input as Params) : {});
 const firstLine = (s: string) => (s.trim().split("\n")[0] ?? "").slice(0, MAX);
 
-export function countLines(s: string): number {
+function countLines(s: string): number {
   if (!s) return 0;
   const body = s.endsWith("\n") ? s.slice(0, -1) : s;
   return body === "" ? 0 : body.split("\n").length;
 }
 
-export const fileArg = (p: Params) => asString(p.file_path) ?? asString(p.path) ?? asString(p.filePath) ?? asString(p.file) ?? asString(p.absolute_path);
+const fileArg = (p: Params) => asString(p.file_path) ?? asString(p.path) ?? asString(p.filePath) ?? asString(p.file) ?? asString(p.absolute_path);
 
 /** Shell command of a Bash-like call, joined when given as argv. */
 export function commandOf(input: unknown): string | undefined {
@@ -50,7 +50,7 @@ export function category(name: string): Category {
 }
 
 /** Lines added and removed by an edit-like call, when its input says. */
-export function editStats(name: string, input: unknown): { added: number; removed: number } | undefined {
+function editStats(name: string, input: unknown): { added: number; removed: number } | undefined {
   const p = params(input);
   const n = lower(name);
   if (n === "write" || n === "write_file" || n === "create_file") {
@@ -101,7 +101,7 @@ function todoSummary(p: Params): string | undefined {
 }
 
 /** Short relative-looking path: the last three segments. */
-export function shortPath(path: string): string {
+function shortPath(path: string): string {
   const parts = path.split("/").filter(Boolean);
   return parts.length > 3 ? `…/${parts.slice(-3).join("/")}` : path;
 }

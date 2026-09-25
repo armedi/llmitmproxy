@@ -2,7 +2,7 @@ import { Download, PanelRight, Trash2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, contextTokens, fmtCost, fmtDuration, fmtSeconds, fmtTime, fmtTokens, type RequestDetail, type RequestSummary, type Session, type Usage } from "../api";
 import { useKeys, useResizable, useStored } from "../hooks";
-import { ClientTag } from "./Sidebar";
+import { ClientTag, kindLabel } from "./Sidebar";
 import { Conversation, type FindResult, type FindState } from "./Conversation";
 import { FindBar, FindRail } from "./FindBar";
 import { MarkdownMode } from "./Markdown";
@@ -230,11 +230,6 @@ function RequestPicker({ requests, shownId, onOpen }: { requests: RequestSummary
       ))}
     </select>
   );
-}
-
-function kindLabel(s: Session) {
-  if (s.agent_id) return s.agent_name ?? "subagent";
-  return s.latest_msg_count > 2 ? "thread" : "side call";
 }
 
 /** Links between a group's main session and its subagents and side calls. */

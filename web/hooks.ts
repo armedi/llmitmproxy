@@ -44,7 +44,7 @@ export function useResizable(key: string, initial: number, min: number, max: num
 }
 
 /** True when a key press is meant for a text field rather than a shortcut. */
-export function isTyping(e: KeyboardEvent): boolean {
+function isTyping(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
   return !!t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 }

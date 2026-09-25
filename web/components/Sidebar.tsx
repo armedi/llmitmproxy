@@ -23,7 +23,7 @@ export interface Filters {
   group: GroupBy;
 }
 
-export const DEFAULT_FILTERS: Filters = { q: "", provider: "", client: "", errors: false, recent: false, hideOneOff: false, group: "none" };
+const DEFAULT_FILTERS: Filters = { q: "", provider: "", client: "", errors: false, recent: false, hideOneOff: false, group: "none" };
 
 /** Filters live in the URL (shareable, survive reload), falling back to the last used ones. */
 export function readFilters(): Filters {
@@ -255,7 +255,7 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
 /** A side call whose main session isn't known, such as Codex's title thread. */
 const isSideCall = (s: Session) => s.parent_id == null && !!s.agent_id?.startsWith("side:");
 
-function kindLabel(s: Session) {
+export function kindLabel(s: Session) {
   if (s.agent_id) return s.agent_name ?? "subagent";
   return s.latest_msg_count > 2 ? "thread" : "side call";
 }

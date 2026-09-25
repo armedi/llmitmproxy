@@ -21,7 +21,7 @@ export interface Pricing {
   hash: string;
 }
 
-export const SNAPSHOT_PATH = resolve(import.meta.dir, "..", "config", "pricing.json");
+const SNAPSHOT_PATH = resolve(import.meta.dir, "..", "config", "pricing.json");
 
 const readModels = (path: string): Record<string, ModelPrice> => {
   try {
