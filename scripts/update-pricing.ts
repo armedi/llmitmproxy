@@ -1,16 +1,16 @@
-#!/usr/bin/env bun
 /**
  * Refresh config/pricing.json from LiteLLM's model price catalog.
  *
- *     bun scripts/update-pricing.ts [path-or-url]
+ *     npm run update-pricing -- [path-or-url]
  *
  * Keeps chat models from the providers coding agents talk to, keyed by the bare model
  * name (no "provider/" prefix), with prices in dollars per million tokens.
  */
-import { resolve } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { configPath } from "../src/lib/paths.server";
 
 const SOURCE = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
-const OUT = resolve(import.meta.dir, "..", "config", "pricing.json");
+const OUT = configPath("pricing.json");
 
 /** Earlier providers win when two list the same model name. */
 const PROVIDERS = [
@@ -30,7 +30,7 @@ const PROVIDERS = [
 const TIERS = [32, 128, 200, 256, 272, 512];
 
 const arg = process.argv[2] ?? SOURCE;
-const raw: Record<string, any> = arg.startsWith("http") ? await (await fetch(arg)).json() : await Bun.file(arg).json();
+const raw: Record<string, any> = arg.startsWith("http") ? await (await fetch(arg)).json() : JSON.parse(readFileSync(arg, "utf8"));
 
 const perM = (v: unknown) => (typeof v === "number" ? Math.round(v * 1e6 * 1e6) / 1e6 : undefined);
 
@@ -62,5 +62,5 @@ for (const [key, e] of entries) {
 }
 
 const sorted = Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
-await Bun.write(OUT, `${JSON.stringify({ source: SOURCE, updated: new Date().toISOString().slice(0, 10), models: sorted }, null, 1)}\n`);
+writeFileSync(OUT, `${JSON.stringify({ source: SOURCE, updated: new Date().toISOString().slice(0, 10), models: sorted }, null, 1)}\n`);
 console.log(`wrote ${Object.keys(sorted).length} models to ${OUT}`);

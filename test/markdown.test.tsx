@@ -1,7 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ForceOpen, Text } from "../web/components/Blocks";
-import { clampMarkdown, Formatted, Markdown } from "../web/components/Markdown";
+import { ForceOpen, Text } from "../src/session/Blocks";
+import { clampMarkdown, Formatted, Markdown } from "../src/components/Markdown";
 
 const render = (text: string) => renderToStaticMarkup(<Markdown text={text} />);
 

@@ -1,10 +1,11 @@
 /**
  * POST the test fixtures to a running mitllmproxy server to try the UI without real traffic.
- *   bun scripts/replay.ts [--slow]
+ *   npm run replay [-- --slow]      (npm run dev:replay for the dev server)
  */
+import { setTimeout as sleep } from "node:timers/promises";
 import { ANTHROPIC_URL, anthropicTurns, event, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "../test/fixtures";
 
-const url = process.env.MITLLMPROXY_URL ?? "http://127.0.0.1:4545/ingest";
+const url = process.env.MITLLMPROXY_URL ?? `http://127.0.0.1:${process.argv.includes("--dev") ? 4546 : 4545}/ingest`;
 const slow = process.argv.includes("--slow");
 const now = Date.now() / 1000;
 
@@ -16,7 +17,7 @@ for (const [i, ev] of events.entries()) {
   const shifted = { ...ev, started_at: start, response_started_at: start + 0.3 + (i % 3) * 0.2, ended_at: start + took };
   if (slow) {
     await post({ ...shifted, state: "pending", response_body: null, status: undefined });
-    await Bun.sleep(700);
+    await sleep(700);
   }
   await post(shifted);
 }

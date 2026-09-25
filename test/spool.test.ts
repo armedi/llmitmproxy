@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { drainSpool } from "../server/spool";
-import { Store } from "../server/store";
+import { drainSpool } from "../src/db/spool.server";
+import { Store } from "../src/db/store.server";
 import { anthropicTurns } from "./fixtures";
 
 let store: Store;

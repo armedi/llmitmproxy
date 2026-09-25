@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { detectProvider, normalizeRequest, normalizeResponse } from "../server/parsers";
+import { describe, expect, test } from "vitest";
+import { detectProvider, normalizeRequest, normalizeResponse } from "../src/llm/parsers/index.server";
 import { anthropicTurns, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "./fixtures";
 
 const parse = (ev: any) => {

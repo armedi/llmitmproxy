@@ -1,10 +1,10 @@
-import { describe, expect, test } from "bun:test";
-import type { RequestSummary } from "../web/api";
-import { patchLines, replacementDiff, toolDiff } from "../web/transcript/diff";
-import { buildItems, focusItems, itemText } from "../web/transcript/items";
-import { turnsByIndex, vitals } from "../web/transcript/stats";
-import { category, commandOf, summarize } from "../web/transcript/tools";
-import type { Normalized } from "../server/types";
+import { describe, expect, test } from "vitest";
+import type { RequestSummary } from "../src/data/api";
+import { patchLines, replacementDiff, toolDiff } from "../src/session/transcript/diff";
+import { buildItems, focusItems, itemText } from "../src/session/transcript/items";
+import { turnsByIndex, vitals } from "../src/session/transcript/stats";
+import { category, commandOf, summarize } from "../src/session/transcript/tools";
+import type { Normalized } from "../src/llm/types";
 
 const thread = (): Normalized => ({
   provider: "anthropic",

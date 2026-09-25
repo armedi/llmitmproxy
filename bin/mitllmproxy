@@ -1,8 +1,11 @@
-#!/usr/bin/env bun
-import { resolve } from "node:path";
+#!/usr/bin/env node
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
-const ROOT = resolve(import.meta.dir, "..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const SERVER = resolve(ROOT, "dist/server/server.js");
 
 function printHelp() {
   console.log(`Usage: mitllmproxy [start] [options]
@@ -19,9 +22,15 @@ Options for start:
                         Start mitmproxy with MITLLMPROXY_DB set to the same path.
       --retention <age> Delete captures older than this, by request time: e.g. 12h, 7d, 2w,
                         or 0/off to keep them forever (default 7d)
-      --dev             Serve the UI with hot reload (Bun development mode)
   -h, --help            Show this help
 `);
+}
+
+// node:sqlite, which stores the captures, needs no flag from these versions on.
+const [major, minor] = process.versions.node.split(".").map(Number);
+if (major < 22 || (major === 22 && minor < 13)) {
+  console.error(`mitllmproxy needs Node.js 22.13 or newer (this is ${process.version})`);
+  process.exit(1);
 }
 
 const [command, ...rest] = process.argv.slice(2);
@@ -39,7 +48,6 @@ if (command === "addon-path") {
       host: { type: "string" },
       db: { type: "string" },
       retention: { type: "string" },
-      dev: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
     allowPositionals: false,
@@ -50,7 +58,11 @@ if (command === "addon-path") {
     process.exit(0);
   }
 
-  const { parseDuration, startServer } = await import("../server/index.ts");
+  if (!existsSync(SERVER)) {
+    console.error(`${SERVER} is missing: run \`npm run build\` first`);
+    process.exit(1);
+  }
+  const { parseDuration, startServer } = await import(pathToFileURL(SERVER).href);
   const retention = values.retention === undefined ? undefined : parseDuration(values.retention);
   if (values.retention !== undefined && retention === undefined) {
     console.error(`Invalid --retention "${values.retention}": use e.g. 12h, 7d, 2w, or 0/off`);
@@ -61,6 +73,5 @@ if (command === "addon-path") {
     port: values.port ? Number(values.port) : undefined,
     host: values.host,
     db: values.db ? resolve(process.cwd(), values.db) : undefined,
-    dev: values.dev,
   });
 }

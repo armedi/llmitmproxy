@@ -1,5 +1,5 @@
-import { expect, test } from "bun:test";
-import { detectClient } from "../server/clients";
+import { expect, test } from "vitest";
+import { detectClient } from "../src/llm/clients.server";
 
 test.each([
   [{ "user-agent": "claude-cli/2.1.3 (external, cli)" }, "claude-code"],

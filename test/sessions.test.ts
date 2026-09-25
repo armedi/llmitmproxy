@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import { Store } from "../server/store";
+import { beforeEach, describe, expect, test } from "vitest";
+import { rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { Store } from "../src/db/store.server";
 import { ANTHROPIC_URL, anthropicTurns, codexTitleThread, codexWebSocketTurns, event, geminiTurns, openaiChatTurns, openaiResponsesTurns, sse } from "./fixtures";
 
 let store: Store;
@@ -284,7 +286,7 @@ describe("session grouping", () => {
     expect(side.agent_id).toBe("side:01a0d75b-4acb-79b2-9543-154a31fbce75");
     expect(side.agent_name).toBe("title");
     expect(side.request_count).toBe(2);
-    expect(side.title).toStartWith("Generate a concise");
+    expect(side.title).toMatch(/^Generate a concise/);
   });
 
   test("a Codex title thread that names its parent thread joins it", () => {
@@ -299,7 +301,7 @@ describe("session grouping", () => {
 
 describe("export", () => {
   test("latest and all scopes contain raw request and response bodies", async () => {
-    const { exportSession } = await import("../server/export");
+    const { exportSession } = await import("../src/db/export.server");
     const ids = ingestAll(anthropicTurns());
     const s = store.getSession(ids[0]!.sessionId)!;
     const latest = exportSession(store, s, "latest");
@@ -349,7 +351,7 @@ describe("requests, cost and clients", () => {
   });
 
   test("reopening re-parses old usage, backfills clients and recomputes costs", () => {
-    const path = `${require("node:os").tmpdir()}/mitllmproxy-test-${Date.now()}.db`;
+    const path = `${tmpdir()}/mitllmproxy-test-${Date.now()}.db`;
     try {
       store = new Store(path, pricing);
       const ids = ingestAll(openaiChatTurns().map((e) => ({ ...e, request_headers: { ...e.request_headers, "user-agent": "codex_cli_rs/0.5" } })));
@@ -365,7 +367,26 @@ describe("requests, cost and clients", () => {
       expect(store.listRequests(sid)[1]!.usage!.input).toBe(40);
     } finally {
       store.db.close();
-      for (const f of [path, `${path}-wal`, `${path}-shm`]) require("node:fs").rmSync(f, { force: true });
+      for (const f of [path, `${path}-wal`, `${path}-shm`]) rmSync(f, { force: true });
+    }
+  });
+
+  test("reopening after the hash function changed rehashes, so later turns still join", () => {
+    const path = `${tmpdir()}/mitllmproxy-test-rehash-${Date.now()}.db`;
+    const turns = anthropicTurns();
+    try {
+      store = new Store(path, pricing);
+      const first = ingestAll(turns.slice(0, 2));
+      // Simulate a database written with another hash function (Bun.hash).
+      store.db.exec(`UPDATE requests SET msg_hashes = (SELECT json_group_array('old' || value) FROM json_each(msg_hashes));
+        UPDATE sessions SET fingerprint = 'old'; UPDATE meta SET value = 'wyhash' WHERE key = 'hash_version';`);
+      store.db.close();
+      store = new Store(path, pricing);
+      const [last] = ingestAll(turns.slice(2));
+      expect(last!.sessionId).toBe(first[0]!.sessionId);
+    } finally {
+      store.db.close();
+      for (const f of [path, `${path}-wal`, `${path}-shm`]) rmSync(f, { force: true });
     }
   });
 });

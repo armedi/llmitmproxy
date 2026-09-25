@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { identify } from "../server/providers";
+import { describe, expect, test } from "vitest";
+import { identify } from "../src/llm/providers/index.server";
 
 const ANTHROPIC = "https://api.anthropic.com/v1/messages";
 const OPENAI = "https://api.openai.com/v1/responses";

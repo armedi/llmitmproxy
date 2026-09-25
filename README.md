@@ -7,7 +7,7 @@ Agents resend the whole conversation on every turn, so mitllmproxy groups those 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Claude on Vertex AI (`:rawPredict` / `:streamRawPredict`) is also supported. Both streaming (SSE) and non-streaming responses are supported. OpenAI Responses over WebSocket, which Codex uses for `wss://chatgpt.com/backend-api/codex/responses`, is captured too: each `response.create` frame and the events answering it become one request.
 
 ```
-client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ bun server (:4545) ──ws──▶ UI
+client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ Node server (:4545) ──ws──▶ UI
 ```
 
 The addon doesn't talk to the server. It queues each captured request as a JSON file in the spool directory next to the database (`<db>-spool/`). The server imports and deletes those files when it starts and every 300 ms while it runs. So capturing works whether or not the server is up: keep mitmproxy running and start the server only when you want the UI, and everything captured in the meantime shows up. The spool is plain files rather than SQLite because mitmproxy's binary builds don't ship Python's `sqlite3` module. Files that fail to import are renamed to `*.failed` and left in place for inspection.
@@ -22,12 +22,14 @@ The addon uses only the standard library, so nothing needs to be installed into 
 
 ## Run
 
+Needs Node.js 22.13 or newer. Bun isn't needed: captures are stored with Node's built-in SQLite.
+
 ```sh
 npm i -g mitllmproxy
 mitllmproxy                 # UI server on http://127.0.0.1:4545
 ```
 
-Or without installing globally: `bunx mitllmproxy` / `npx mitllmproxy`.
+Or without installing globally: `npx mitllmproxy`.
 
 The server's port, bind address and database are set with flags. Run `mitllmproxy --help` for the full list:
 
@@ -89,7 +91,7 @@ HTTPS_PROXY=http://127.0.0.1:8080 SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.p
 HTTPS_PROXY=http://127.0.0.1:8080 SSL_CERT_FILE=~/.mitmproxy/mitmproxy-ca-cert.pem codex
 ```
 
-To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch requests go from pending to done.
+To try the UI without real traffic, run `npm run replay`. Add `--slow` to watch requests go from pending to done.
 
 
 ## The viewer
@@ -138,7 +140,7 @@ To try the UI without real traffic, run `bun run replay`. Add `--slow` to watch 
 
 Costs are estimates from list prices. They are computed from each response's token usage and the model it reports.
 
-- **Prices:** the snapshot in `config/pricing.json`, generated from [LiteLLM's price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json) with `bun run update-pricing`.
+- **Prices:** the snapshot in `config/pricing.json`, generated from [LiteLLM's price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json) with `npm run update-pricing`.
 - **Long prompts:** for models whose price rises above a prompt size (e.g. 200k tokens), the higher rate is used.
 - **Unknown models:** they are counted as "unpriced" instead of guessed.
 - **Your own prices:** put a `pricing.json` next to the database (`~/.mitllmproxy/pricing.json`) in the same format, for example `{"models": {"my-model": {"input": 1, "output": 4, "cacheRead": 0.1}}}`. Prices are dollars per million tokens.
@@ -177,7 +179,7 @@ To support a new gateway such as LiteLLM, OpenRouter or an internal proxy, add i
 
 ## How sessions are grouped
 
-1. **Agent session id:** when the client declares its own session id, it is stored as the session's `session_id`. All sessions with that id form one group. Each provider module in `server/providers/` knows its clients' conventions. The module for the request's host is asked first, then all the others, because gateways forward client headers:
+1. **Agent session id:** when the client declares its own session id, it is stored as the session's `session_id`. All sessions with that id form one group. Each provider module in `src/llm/providers/` knows its clients' conventions. The module for the request's host is asked first, then all the others, because gateways forward client headers:
 
    | Provider | Session | Subagent |
    |---|---|---|
@@ -220,38 +222,61 @@ In a group, the longest non-subagent conversation is the main session and the on
 
 ## Development
 
+mitllmproxy is a [TanStack Start](https://tanstack.com/start) app built with Vite and run with Node.js.
+
 ```sh
-bun test          # parser, session-grouping, pricing and transcript tests
-bun run typecheck
-bun run dev       # server with hot reload on the dev port
-bun run dev:replay
-bun run update-pricing   # refresh config/pricing.json from LiteLLM
+npm install
+npm test                 # parser, session-grouping, pricing and transcript tests (Vitest)
+npm run typecheck
+npm run dev              # dev server with hot reload on the dev port
+npm run dev:replay       # send the test fixtures to the dev server
+npm run build            # build the UI and server into dist/
+npm start                # run the build, like the published package
+npm run update-pricing   # refresh config/pricing.json from LiteLLM
 ```
 
-The dev server runs alongside `bun start` without touching it:
+The dev server runs alongside `npm start` without touching it:
 
-|          | `bun start`      | `bun run dev`        |
+|          | `npm start`      | `npm run dev`        |
 | -------- | ---------------- | -------------------- |
 | UI       | :4545            | :4546                |
 | Database | `~/.mitllmproxy/mitllmproxy.db` | `mitllmproxy-dev.db` |
-| UI build | [React Compiler](https://react.dev/learn/react-compiler), minified | hot reload, no React Compiler |
+| Server   | `bin/mitllmproxy` on the build in `dist/` | Vite, with the backend in its SSR module runner |
 
-Both are just `bin/mitllmproxy` with different flags. See the `start` and `dev` scripts in `package.json`. Bun only runs the React Compiler in `Bun.build`, not for the HTML imports that hot reload uses, so `bun start` bundles the UI at startup (see `server/ui.ts`). Check UI changes with `bun start` as well, since the compiler's memoization can change behavior.
+Both builds use the [React Compiler](https://react.dev/learn/react-compiler). `npm start` serves whatever `npm run build` last produced, so rebuild after changes. The dev server's database and bind address can be changed with `MITLLMPROXY_DB` and `MITLLMPROXY_HOST`. Editing a `*.server.ts` file restarts the backend on the next request.
 
 To send real traffic to the dev build, run a second mitmproxy on another port with the addon pointed at the dev server:
 
 ```sh
-MITLLMPROXY_DB="$PWD/mitllmproxy-dev.db" mitmdump -p 9080 -s "$(bun bin/mitllmproxy addon-path)"
+MITLLMPROXY_DB="$PWD/mitllmproxy-dev.db" mitmdump -p 9080 -s "$(node bin/mitllmproxy addon-path)"
 ```
 
 Layout:
 
+Apart from the addon and `config/`, everything is under `src/`. Server-only modules are named `*.server.ts`; TanStack Start refuses to bundle them into the browser build.
+
 - `addon/`: the mitmproxy addon.
 - `config/`: the built-in capture patterns, read by the addon.
-- `server/parsers/`: one normalizer per API, all producing a common block model.
-- `server/providers/`: one module per provider or router, reading the session id its clients declare.
-- `server/sessions.ts`: the grouping logic.
-- `server/store.ts`: SQLite storage, with migrations that re-parse old captures and recompute costs.
-- `server/pricing.ts`, `config/pricing.json`: cost estimates.
-- `server/clients.ts`: detects the agent app from its headers.
-- `web/`: the React UI, bundled by Bun's HTML imports. `web/transcript/` holds the pure display logic: pairing tool results, grouping, tool summaries, diffs and stats.
+- `src/routes/`: file routes.
+  - `__root.tsx`: the document, the sidebar layout and the sidebar filters, which are search params kept across pages.
+  - `index.tsx` opens the newest session. `session.$id.tsx` is a session's header and stats panel; under it, `session.$id.index.tsx` is the conversation, and `session.$id.raw.tsx` and `session.$id.request.$rid.tsx` are the Raw view of the latest or a chosen request.
+  - `api/` and `ingest.ts`: the HTTP API, as server routes.
+- `src/router.tsx`: the router, with a TanStack Query client in its context. Route loaders fill the query cache.
+- `src/server.ts`: the server entry. It checks the host and origin of every request, and starts the production server for `bin/mitllmproxy`.
+- `src/backend.server.ts`: the store plus the timers that import the spool and prune old captures.
+- `src/http/`: the production HTTP server (`serve.server.ts`), the live-update socket (`ws.server.ts`, fed by `hub.server.ts`) and the host/origin check (`guard.server.ts`).
+- `src/llm/`: understanding the captured traffic.
+  - `parsers/`: one normalizer per API, all producing a common block model (`types.ts`, shared with the UI).
+  - `providers/`: one module per provider or router, reading the session id its clients declare.
+  - `sessions.server.ts`: the grouping logic.
+  - `pricing.server.ts`, with `config/pricing.json`: cost estimates.
+  - `clients.server.ts`: detects the agent app from its headers.
+- `src/db/`: storing it.
+  - `store.server.ts`: SQLite storage (`node:sqlite`, through `db.server.ts`), with migrations that re-parse old captures and recompute costs.
+  - `spool.server.ts`: imports what the addon queued. `export.server.ts`: session exports.
+- `src/data/`: the UI's side of the API. `api.ts` has the response types and queries; `live.ts` applies the server's live updates to the query cache.
+- `src/sidebar/`: the session list, its filters (`filters.ts`) and the status dots (`status.ts`).
+- `src/session/`: the session page: header, conversation, Raw view, find bar and stats panel, plus `hooks.ts` for the session routes. `transcript/` holds the pure display logic: pairing tool results, grouping, tool summaries, diffs and stats.
+- `src/components/`: shared UI: dialogs, help, copy button, Markdown, and the client and provider labels.
+- `src/lib/`: formatting, localStorage-backed state and keyboard hooks, the theme, and the package paths.
+- `src/styles/`: the stylesheet, design tokens and self-hosted fonts.

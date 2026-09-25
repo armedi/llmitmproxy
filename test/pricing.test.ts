@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { costOf, loadPricing, normalizeModel, type Pricing, priceFor } from "../server/pricing";
+import { describe, expect, test } from "vitest";
+import { costOf, loadPricing, normalizeModel, type Pricing, priceFor } from "../src/llm/pricing.server";
 
 const pricing: Pricing = {
   hash: "t",

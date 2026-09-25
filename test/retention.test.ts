@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import { parseDuration } from "../server/index";
-import { Store } from "../server/store";
+import { beforeEach, describe, expect, test } from "vitest";
+import { parseDuration } from "../src/backend.server";
+import { Store } from "../src/db/store.server";
 import { anthropicTurns } from "./fixtures";
 
 let store: Store;

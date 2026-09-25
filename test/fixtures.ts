@@ -1,4 +1,4 @@
-import type { IngestEvent } from "../server/types";
+import type { IngestEvent } from "../src/llm/types";
 
 let counter = 0;
 let clock = 1_790_000_000;

@@ -7,34 +7,53 @@
   },
   "files": [
     "bin",
-    "server",
-    "web",
-    "addon",
+    "dist",
+    "addon/mitllmproxy_addon.py",
     "config"
   ],
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
-    "start": "bun bin/mitllmproxy",
-    "dev": "bun --hot bin/mitllmproxy --dev",
-    "replay": "bun scripts/replay.ts",
-    "update-pricing": "bun scripts/update-pricing.ts",
-    "test": "bun test",
+    "dev": "vite dev",
+    "dev:replay": "tsx scripts/replay.ts --dev",
+    "build": "vite build",
+    "start": "node bin/mitllmproxy",
+    "prepack": "npm run build",
+    "replay": "tsx scripts/replay.ts",
+    "update-pricing": "tsx scripts/update-pricing.ts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
-    "lucide-react": "^1.48.0",
+    "@tanstack/react-query": "^5.103.1",
+    "@tanstack/react-router": "^1.170.38",
+    "@tanstack/react-router-ssr-query": "^1.167.3",
+    "@tanstack/react-start": "^1.168.56",
+    "lucide-react": "^1.47.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "srvx": "^1.0.5",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.2",
+    "@babel/core": "^7.29.7",
+    "@rolldown/plugin-babel": "^0.2.4",
+    "@types/node": "^26.6.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "typescript": "^7.0.2"
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.1.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   }
 }

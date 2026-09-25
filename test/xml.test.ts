@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { parseXml, type XmlElement, type XmlNode } from "../web/transcript/xml";
+import { describe, expect, test } from "vitest";
+import { parseXml, type XmlElement, type XmlNode } from "../src/session/transcript/xml";
 
 const el = (tag: string, children: XmlNode[], attrs = ""): XmlElement => ({ tag, attrs, children });
 
