@@ -12,6 +12,7 @@ test.each([
   [{ "user-agent": "RooCode/3.0" }, "roo"],
   [{ "x-task-id": "t" }, "cline"],
   [{ "user-agent": "mimocode/1.0" }, "mimo"],
+  [{ "user-agent": "Zed/1.21.0+stable.362 (macos; aarch64)" }, "zed"],
   [{ "user-agent": "curl/8.0" }, null],
   [{}, null],
 ])("%o → %s", (headers, client) => {

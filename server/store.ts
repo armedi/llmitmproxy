@@ -233,6 +233,11 @@ export class Store {
         if (existing.state !== "pending") return { sessionId, requestId };
       } else {
         n = normalizeRequest(ev);
+        // A side call gets its own child session, which later turns can never join by prefix.
+        if (n.sideCall && !n.agentId) {
+          n.agentId = `side:${ev.flow_id}`;
+          n.agentName ??= "side call";
+        }
         this.stitchPrevious(n);
         const hashes = messageHashes(n.messages);
         const client = detectClient(ev.request_headers ?? {});

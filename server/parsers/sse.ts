@@ -44,6 +44,21 @@ export function sseJSON(body: string): { event?: string; json: any }[] {
   return out;
 }
 
+/**
+ * Zed's cloud streams newline-delimited JSON: `{"event": <upstream event>}` lines plus
+ * `{"status": …}` lines of its own. Re-encode the upstream events as SSE so the provider
+ * parsers can read them. Returns undefined for anything else.
+ */
+export function zedStreamToSSE(body: string): string | undefined {
+  if (!/^\s*\{"(event|status)":/.test(body)) return undefined;
+  let out = "";
+  for (const line of body.split(/\r?\n/)) {
+    const json = tryJSON(line.trim());
+    if (json?.event !== undefined) out += `data: ${JSON.stringify(json.event)}\n\n`;
+  }
+  return out;
+}
+
 export function looksLikeSSE(body: string, contentType?: string): boolean {
   if (contentType?.includes("text/event-stream")) return true;
   return /^(event|data):/m.test(body.slice(0, 200));

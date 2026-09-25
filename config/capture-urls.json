@@ -16,6 +16,7 @@
     "re:^https?://([^/]+\\.)?(moonshot\\.ai|moonshot\\.cn|kimi\\.com|minimax\\.io|minimaxi\\.com|xiaomimimo\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
     "re:^https?://([^/]+\\.)?(minimax\\.io|minimaxi\\.com)(:\\d+)?/v1/text/chatcompletion_v2(\\?|$)",
     "re:^https?://([^/]+\\.)?(volces\\.com|bytepluses\\.com|z\\.ai|bigmodel\\.cn|stepfun\\.com|stepfun\\.ai|siliconflow\\.cn|siliconflow\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
+    "re:^https?://([^/]+\\.)?(zed\\.dev)(:\\d+)?/completions(\\?|$)",
     "re:^https?://([^/]+\\.)?(codebuddy\\.ai|codebuddy\\.cn|copilot\\.tencent\\.com|hunyuan\\.cloud\\.tencent\\.com|baidubce\\.com)(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
 
     "re:^https?://[^/]+/(.+/)?chat/completions(\\?|$)",

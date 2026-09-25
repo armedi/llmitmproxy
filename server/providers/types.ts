@@ -8,6 +8,8 @@ export interface Identity {
   agentId?: string;
   /** The subagent's type or name. */
   agentName?: string;
+  /** A one-off call made for the session, such as title generation. It never continues a conversation. */
+  sideCall?: boolean;
 }
 
 /**

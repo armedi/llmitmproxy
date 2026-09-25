@@ -192,6 +192,7 @@ To support a new gateway such as LiteLLM, OpenRouter or an internal proxy, add i
    | LiteLLM | `x-litellm-session-id`, body `litellm_session_id`, `metadata.session_id` | |
    | Portkey | `x-portkey-trace-id` | |
    | xAI | `x-grok-conv-id` | |
+   | Zed (hosted models) | body `thread_id` | requests without `prompt_id` (title generation) are side calls |
    | DashScope / Model Studio (Qwen Code) | body `metadata.sessionId`, apps API `input.session_id` | |
    | Moonshot / Kimi (Kimi CLI) | body `prompt_cache_key`, on Kimi hosts only | |
    | MiniMax (MiniMax Code) | `x-mavis-session-id` | |
@@ -206,7 +207,7 @@ To support a new gateway such as LiteLLM, OpenRouter or an internal proxy, add i
    - Volcengine Ark `session.id` / `context_id`
 
    Some providers have no session field of their own: Vercel AI Gateway, Cloudflare AI Gateway, Groq, Together, Bedrock, DeepSeek, Z.ai/GLM, Baidu Qianfan, Hunyuan, StepFun and SiliconFlow. Their `user` / `user_id` fields identify end users, not sessions. Requests to them are still grouped by whatever the client sends. For example, Z.ai's ZCode and iFlow CLI send `x-session-id` and `session-id`. ZCode subagents get their own session id with no parent pointer, so they show up as separate groups.
-2. **Subagents:** requests with a subagent id join that subagent's own session, linked to the group.
+2. **Subagents:** requests with a subagent id join that subagent's own session, linked to the group. Requests a provider marks as side calls each get their own session in the group and are never continued.
 3. **Prefix chain:** any other request joins the most recent session whose latest request's messages are a prefix of its own messages. With an agent session id, only that group's sessions are candidates. Without one, candidates must also have the same provider and set of tool names, and have been active in the last 24 hours.
    - Messages are canonicalized first. `cache_control` markers and thinking blocks are ignored, and tool calls are compared by id.
    - A rewritten last message is tolerated.

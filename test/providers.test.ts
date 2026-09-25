@@ -126,6 +126,12 @@ describe("routers and generic conventions", () => {
     expect(identify(GATEWAY, {}, { context_id: "ctx-1" })).toEqual({});
   });
 
+  test("Zed thread id; requests without a prompt id are side calls", () => {
+    const url = "https://cloud.zed.dev/completions";
+    expect(identify(url, {}, { thread_id: "t1", prompt_id: "p1" })).toEqual({ sessionId: "t1" });
+    expect(identify(url, {}, { thread_id: "t1" })).toEqual({ sessionId: "t1", sideCall: true });
+  });
+
   test("nothing declared", () => {
     expect(identify(GATEWAY, { "x-client-request-id": "per-request" }, { messages: [] })).toEqual({});
   });

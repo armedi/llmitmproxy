@@ -134,6 +134,41 @@ describe("gemini", () => {
   });
 });
 
+describe("zed", () => {
+  test("cloud envelope and NDJSON stream", () => {
+    const events = [
+      { type: "message_start", message: { id: "msg_1", model: "claude-opus-5-5", usage: { input_tokens: 2, output_tokens: 3, cache_read_input_tokens: 10 } } },
+      { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } },
+      { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Done" } },
+      { type: "content_block_stop", index: 0 },
+      { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 8 } },
+      { type: "message_stop" },
+    ];
+    const n = parse({
+      url: "https://cloud.zed.dev/completions?",
+      request_headers: { "user-agent": "Zed/1.21.0+stable (macos; aarch64)" },
+      request_body: {
+        text: JSON.stringify({
+          thread_id: "b6566bdd",
+          prompt_id: "df9e7665",
+          provider: "anthropic",
+          model: "claude-opus-5-5",
+          provider_request: { model: "claude-opus-5-5", max_tokens: 1, system: [{ type: "text", text: "sys" }], messages: [{ role: "user", content: "hi" }] },
+        }),
+      },
+      status: 200,
+      response_body: { text: [...events.map((event) => JSON.stringify({ event })), JSON.stringify({ status: "stream_ended" })].join("\n") },
+    });
+    expect(n.provider).toBe("anthropic");
+    expect(n.model).toBe("claude-opus-5-5");
+    expect(n.sessionId).toBe("b6566bdd");
+    expect(n.messages).toHaveLength(1);
+    expect(n.response?.blocks).toEqual([{ type: "text", text: "Done" }]);
+    expect(n.response?.stopReason).toBe("end_turn");
+    expect(n.response?.usage?.output).toBe(8);
+  });
+});
+
 test("provider detection falls back to body shape", () => {
   expect(detectProvider("https://gw.local/llm/proxy", { messages: [], system: "x", max_tokens: 1 })).toBe("anthropic");
   expect(detectProvider("https://gw.local/llm/proxy", { messages: [{ role: "system", content: "x" }] })).toBe("openai-chat");

@@ -60,6 +60,8 @@ export interface Normalized {
   agentId?: string;
   /** The subagent's type or name, when the client sends one. */
   agentName?: string;
+  /** A one-off call made for the session (title generation and the like), as marked by its provider. */
+  sideCall?: boolean;
   /** OpenAI Responses previous_response_id, used to chain sessions. */
   previousResponseId?: string;
 }

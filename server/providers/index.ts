@@ -16,6 +16,7 @@ import { opencode } from "./opencode";
 import { openrouter } from "./openrouter";
 import { portkey } from "./portkey";
 import { xai } from "./xai";
+import { zed } from "./zed";
 import type { Headers, Identity, ProviderDef } from "./types";
 
 export type { Identity, ProviderDef } from "./types";
@@ -36,6 +37,7 @@ export const PROVIDERS: ProviderDef[] = [
   litellm,
   portkey,
   xai,
+  zed,
   dashscope,
   kimi,
   minimax,

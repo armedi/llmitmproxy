@@ -21,6 +21,7 @@ const RULES: ClientRule[] = [
   { name: "cline", test: (h, ua) => /^cline\//i.test(ua) || has(h, "x-task-id") },
   { name: "codebuddy", test: (h, ua) => /codebuddy/i.test(ua) || has(h, "x-conversation-id") },
   { name: "mimo", test: (h, ua) => /^mimocode\//i.test(ua) || has(h, "x-mimo-source") },
+  { name: "zed", test: (h, ua) => /^Zed\//.test(ua) || has(h, "x-zed-version") },
   { name: "cursor", test: (_, ua) => /cursor/i.test(ua) },
   { name: "aider", test: (_, ua) => /aider/i.test(ua) },
   { name: "crush", test: (_, ua) => /^crush\//i.test(ua) },

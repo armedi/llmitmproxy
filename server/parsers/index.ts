@@ -4,7 +4,7 @@ import * as anthropic from "./anthropic";
 import * as gemini from "./gemini";
 import * as openaiChat from "./openai-chat";
 import * as openaiResponses from "./openai-responses";
-import { looksLikeSSE, tryJSON } from "./sse";
+import { looksLikeSSE, tryJSON, zedStreamToSSE } from "./sse";
 
 export function bodyText(body: IngestEvent["request_body"]): string | undefined {
   if (!body) return undefined;
@@ -52,9 +52,17 @@ function modelFromURL(url: string): string | undefined {
   }
 }
 
+/** Zed's cloud wraps the upstream API request: `{ thread_id, provider, model, provider_request }`. */
+function unwrapZed(req: any): any {
+  return req && typeof req.provider === "string" && req.provider_request && typeof req.provider_request === "object"
+    ? req.provider_request
+    : req;
+}
+
 export function normalizeRequest(ev: IngestEvent): Normalized {
   const reqText = bodyText(ev.request_body);
-  const req = tryJSON(reqText);
+  const envelope = tryJSON(reqText);
+  const req = unwrapZed(envelope);
   const headers = ev.request_headers ?? {};
   const provider = detectProvider(ev.url, req, headers);
   let n: Normalized;
@@ -71,13 +79,14 @@ export function normalizeRequest(ev: IngestEvent): Normalized {
   }
   // Vertex AI's Claude endpoints name the model only in the path: …/models/<id>:rawPredict.
   n.model ??= modelFromURL(ev.url);
-  Object.assign(n, identify(ev.url, headers, req));
+  Object.assign(n, identify(ev.url, headers, envelope));
   return n;
 }
 
 export function normalizeResponse(provider: Provider, ev: IngestEvent): NormalizedResponse | undefined {
-  const text = bodyText(ev.response_body);
+  let text = bodyText(ev.response_body);
   if (text == null) return ev.error ? { blocks: [], error: ev.error } : undefined;
+  text = zedStreamToSSE(text) ?? text;
   const ct = ev.response_headers?.["content-type"];
   let out: NormalizedResponse;
   if (provider === "unknown") {

@@ -80,6 +80,31 @@ describe("session grouping", () => {
     expect(store.getSession(side.sessionId)!.parent_id).toBe(main.id);
   });
 
+  test("a Zed title request stays a side call and the next turn continues the thread", () => {
+    const URL = "https://cloud.zed.dev/completions?";
+    const msg = (role: string, text: string) => ({ type: "message", role, content: [{ type: role === "user" ? "input_text" : "output_text", text }] });
+    const tools = [{ type: "function", name: "read_file", parameters: {} }];
+    const zed = (input: unknown[], promptId?: string) =>
+      event(URL, {
+        thread_id: "t1",
+        ...(promptId && { prompt_id: promptId }),
+        provider: "open_ai",
+        model: "gpt-6-luna",
+        provider_request: { model: "gpt-6-luna", input, ...(promptId && { instructions: "sys", tools }) },
+      }, {});
+    const q = msg("user", "what can you do?");
+    const a = msg("assistant", "Lots.");
+    const turn1 = store.ingest(zed([q], "p1"));
+    const title = store.ingest(zed([q, a, msg("user", "Generate a concise 3-7 word title for this conversation")]));
+    const turn2 = store.ingest(zed([q, a, msg("user", "show me the files")], "p2"));
+
+    expect(turn2.sessionId).toBe(turn1.sessionId);
+    expect(title.sessionId).not.toBe(turn1.sessionId);
+    const side = store.getSession(title.sessionId)!;
+    expect(side.parent_id).toBe(turn1.sessionId);
+    expect(side.agent_name).toBe("side call");
+  });
+
   test("header session id groups turns even when the tool set changes", () => {
     const hdr = { "x-claude-code-session-id": "sess-1" };
     const turns = anthropicTurns().map((e, i) => {
