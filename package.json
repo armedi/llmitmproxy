@@ -15,8 +15,7 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "vite dev",
-    "dev:replay": "tsx scripts/replay.ts --dev",
+    "dev": "node bin/mitllmproxy --dev",
     "build": "vite build",
     "start": "node bin/mitllmproxy",
     "prepack": "npm run build",

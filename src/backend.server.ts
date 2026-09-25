@@ -105,6 +105,15 @@ function optionsFromEnv(): BackendOptions {
   };
 }
 
+/** Where captures are read from and kept, for the startup banner. */
+export function describeBackend(b: Backend): string {
+  return [
+    `database:  ${b.store.db.filename}`,
+    `spool:     ${b.spool}`,
+    `retention: ${b.retention > 0 ? formatDuration(b.retention) : "forever"}`,
+  ].join("\n");
+}
+
 const UNITS: [string, number][] = [["w", 7 * 86400], ["d", 86400], ["h", 3600], ["m", 60], ["s", 1]];
 
 /** Parse a duration like `7d`, `12h`, `30m` or `2w` into seconds; `0` or `off` means keep forever. */
@@ -116,7 +125,7 @@ export function parseDuration(text: string): number | undefined {
   return m && size && Number(m[1]) > 0 ? Number(m[1]) * size : undefined;
 }
 
-export function formatDuration(seconds: number): string {
+function formatDuration(seconds: number): string {
   const [unit, size] = UNITS.find(([, s]) => seconds % s === 0) ?? ["s", 1];
   return `${seconds / size}${unit}`;
 }

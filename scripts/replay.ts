@@ -1,11 +1,11 @@
 /**
  * POST the test fixtures to a running mitllmproxy server to try the UI without real traffic.
- *   npm run replay [-- --slow]      (npm run dev:replay for the dev server)
+ *   npm run replay [-- --slow]      (MITLLMPROXY_URL=http://127.0.0.1:<port>/ingest for another port)
  */
 import { setTimeout as sleep } from "node:timers/promises";
 import { ANTHROPIC_URL, anthropicTurns, event, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "../test/fixtures";
 
-const url = process.env.MITLLMPROXY_URL ?? `http://127.0.0.1:${process.argv.includes("--dev") ? 4546 : 4545}/ingest`;
+const url = process.env.MITLLMPROXY_URL ?? "http://127.0.0.1:3000/ingest";
 const slow = process.argv.includes("--slow");
 const now = Date.now() / 1000;
 

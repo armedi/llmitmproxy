@@ -16,12 +16,13 @@ Commands:
   addon-path     Print the absolute path to the mitmproxy addon
 
 Options for start:
-  -p, --port <number>   Server port (default 4545)
+  -p, --port <number>   Server port (default $PORT, else 3000)
       --host <address>  Bind address (default 127.0.0.1)
       --db <path>       Path to the SQLite database file (default ~/.mitllmproxy/mitllmproxy.db).
                         Start mitmproxy with MITLLMPROXY_DB set to the same path.
       --retention <age> Delete captures older than this, by request time: e.g. 12h, 7d, 2w,
                         or 0/off to keep them forever (default 7d)
+      --dev             Run from source with hot reload (needs a checkout with dev dependencies)
   -h, --help            Show this help
 `);
 }
@@ -48,6 +49,7 @@ if (command === "addon-path") {
       host: { type: "string" },
       db: { type: "string" },
       retention: { type: "string" },
+      dev: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
     allowPositionals: false,
@@ -58,20 +60,48 @@ if (command === "addon-path") {
     process.exit(0);
   }
 
+  const opts = {
+    port: values.port ? Number(values.port) : undefined,
+    host: values.host,
+    db: values.db ? resolve(process.cwd(), values.db) : undefined,
+  };
+  if (values.dev) await startDev(opts, values.retention);
+  else await startBuilt(opts, values.retention);
+}
+
+function checkRetention(parseDuration, text) {
+  const retention = text === undefined ? undefined : parseDuration(text);
+  if (text !== undefined && retention === undefined) {
+    console.error(`Invalid --retention "${text}": use e.g. 12h, 7d, 2w, or 0/off`);
+    process.exit(1);
+  }
+  return retention;
+}
+
+/** The production server, on the build in dist/. */
+async function startBuilt(opts, retentionText) {
   if (!existsSync(SERVER)) {
     console.error(`${SERVER} is missing: run \`npm run build\` first`);
     process.exit(1);
   }
   const { parseDuration, startServer } = await import(pathToFileURL(SERVER).href);
-  const retention = values.retention === undefined ? undefined : parseDuration(values.retention);
-  if (values.retention !== undefined && retention === undefined) {
-    console.error(`Invalid --retention "${values.retention}": use e.g. 12h, 7d, 2w, or 0/off`);
+  await startServer({ ...opts, retention: checkRetention(parseDuration, retentionText) });
+}
+
+/** The Vite dev server on the source, with hot reload. */
+async function startDev(opts, retentionText) {
+  const vite = await import("vite").catch(() => null);
+  if (!vite) {
+    console.error("--dev runs from source: use a checkout of the repository with `npm install` done");
     process.exit(1);
   }
-  await startServer({
-    retention,
-    port: values.port ? Number(values.port) : undefined,
-    host: values.host,
-    db: values.db ? resolve(process.cwd(), values.db) : undefined,
-  });
+  const server = await vite.createServer({ root: ROOT, server: { port: opts.port, host: opts.host } });
+  const { parseDuration } = await server.environments.ssr.runner.import("/src/backend.server.ts");
+  checkRetention(parseDuration, retentionText);
+  // The backend runs inside Vite's SSR module runner and reads its options from the environment.
+  if (opts.db) process.env.MITLLMPROXY_DB = opts.db;
+  if (opts.host) process.env.MITLLMPROXY_HOST = opts.host;
+  if (retentionText) process.env.MITLLMPROXY_RETENTION = retentionText;
+  await server.listen();
+  server.printUrls();
 }

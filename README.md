@@ -7,7 +7,7 @@ Agents resend the whole conversation on every turn, so mitllmproxy groups those 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Claude on Vertex AI (`:rawPredict` / `:streamRawPredict`) is also supported. Both streaming (SSE) and non-streaming responses are supported. OpenAI Responses over WebSocket, which Codex uses for `wss://chatgpt.com/backend-api/codex/responses`, is captured too: each `response.create` frame and the events answering it become one request.
 
 ```
-client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ Node server (:4545) ──ws──▶ UI
+client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ Node server (:3000) ──ws──▶ UI
 ```
 
 The addon doesn't talk to the server. It queues each captured request as a JSON file in the spool directory next to the database (`<db>-spool/`). The server imports and deletes those files when it starts and every 300 ms while it runs. So capturing works whether or not the server is up: keep mitmproxy running and start the server only when you want the UI, and everything captured in the meantime shows up. The spool is plain files rather than SQLite because mitmproxy's binary builds don't ship Python's `sqlite3` module. Files that fail to import are renamed to `*.failed` and left in place for inspection.
@@ -26,7 +26,7 @@ Needs Node.js 22.13 or newer. Bun isn't needed: captures are stored with Node's 
 
 ```sh
 npm i -g mitllmproxy
-mitllmproxy                 # UI server on http://127.0.0.1:4545
+mitllmproxy                 # UI server on http://127.0.0.1:3000
 ```
 
 Or without installing globally: `npx mitllmproxy`.
@@ -228,28 +228,20 @@ mitllmproxy is a [TanStack Start](https://tanstack.com/start) app built with Vit
 npm install
 npm test                 # parser, session-grouping, pricing and transcript tests (Vitest)
 npm run typecheck
-npm run dev              # dev server with hot reload on the dev port
-npm run dev:replay       # send the test fixtures to the dev server
+npm run dev              # dev server with hot reload
+npm run replay           # send the test fixtures to the server on :3000
 npm run build            # build the UI and server into dist/
 npm start                # run the build, like the published package
 npm run update-pricing   # refresh config/pricing.json from LiteLLM
 ```
 
-The dev server runs alongside `npm start` without touching it:
-
-|          | `npm start`      | `npm run dev`        |
-| -------- | ---------------- | -------------------- |
-| UI       | :4545            | :4546                |
-| Database | `~/.mitllmproxy/mitllmproxy.db` | `mitllmproxy-dev.db` |
-| Server   | `bin/mitllmproxy` on the build in `dist/` | Vite, with the backend in its SSR module runner |
-
-Both builds use the [React Compiler](https://react.dev/learn/react-compiler). `npm start` serves whatever `npm run build` last produced, so rebuild after changes. The dev server's database and bind address can be changed with `MITLLMPROXY_DB` and `MITLLMPROXY_HOST`. Editing a `*.server.ts` file restarts the backend on the next request.
-
-To send real traffic to the dev build, run a second mitmproxy on another port with the addon pointed at the dev server:
+`npm run dev` is `mitllmproxy --dev`: Vite serving the source, with the backend in its SSR module runner. `npm start` runs `bin/mitllmproxy` on the build in `dist/`, and serves whatever `npm run build` last produced, so rebuild after changes. Both take the same flags and defaults: port `$PORT` or 3000 (TanStack Start's usual one), and the database in `~/.mitllmproxy/`, so they see the same captures. Pass flags after `--`:
 
 ```sh
-MITLLMPROXY_DB="$PWD/mitllmproxy-dev.db" mitmdump -p 9080 -s "$(node bin/mitllmproxy addon-path)"
+npm run dev -- --port 4000 --db ./test.db
 ```
+
+Both use the [React Compiler](https://react.dev/learn/react-compiler). Editing a `*.server.ts` file restarts the backend on the next request.
 
 Layout:
 
