@@ -56,6 +56,17 @@ describe("google", () => {
     expect(identify(url, {}, { request: { session_id: "g1" } }).sessionId).toBe("g1");
     expect(identify(url, {}, { user_prompt_id: "g2########3" }).sessionId).toBe("g2");
   });
+
+  test("Antigravity conversation and its title checkpoint", () => {
+    const url = "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse";
+    // The conversation id in requestId wins over the process-wide sessionId.
+    expect(identify(url, {}, { requestType: "agent", requestId: "agent/conv-1/1790/traj/1", request: { sessionId: "p1" } })).toEqual({ sessionId: "conv-1" });
+    expect(identify(url, {}, { requestType: "checkpoint", requestId: "checkpoint/x", request: { sessionId: "p1" } })).toEqual({
+      sessionId: "p1",
+      agentName: "title",
+      sideCall: true,
+    });
+  });
 });
 
 describe("routers and generic conventions", () => {

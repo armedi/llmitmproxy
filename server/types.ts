@@ -62,7 +62,7 @@ export interface Normalized {
   agentName?: string;
   /** A one-off call made for the session (title generation and the like), as marked by its provider. */
   sideCall?: boolean;
-  /** OpenAI Responses previous_response_id, used to chain sessions. */
+  /** OpenAI Responses previous_response_id or an Anthropic thread's previous_message_id, used to chain sessions. */
   previousResponseId?: string;
 }
 

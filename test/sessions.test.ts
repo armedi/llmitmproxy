@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Store } from "../server/store";
-import { ANTHROPIC_URL, anthropicTurns, codexTitleThread, codexWebSocketTurns, event, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "./fixtures";
+import { ANTHROPIC_URL, anthropicTurns, codexTitleThread, codexWebSocketTurns, event, geminiTurns, openaiChatTurns, openaiResponsesTurns, sse } from "./fixtures";
 
 let store: Store;
 beforeEach(() => {
@@ -105,6 +105,42 @@ describe("session grouping", () => {
     expect(side.agent_name).toBe("side call");
   });
 
+  test("Claude Code message threads: a continuing turn is stitched onto the previous message", () => {
+    const hdr = { "content-type": "application/json", "x-claude-code-session-id": "sess-t" };
+    const tools = [{ name: "Bash", input_schema: { type: "object" } }];
+    const reply = (id: string, content: object) =>
+      sse([
+        ["message_start", { type: "message_start", message: { id, model: "claude-opus-5-5", usage: { input_tokens: 10, output_tokens: 1 } } }],
+        ["content_block_start", { type: "content_block_start", index: 0, content_block: content }],
+        ["content_block_stop", { type: "content_block_stop", index: 0 }],
+        ["message_stop", { type: "message_stop" }],
+      ]);
+    const q = { role: "user", content: [{ type: "text", text: "list files" }] };
+    const ids = ingestAll([
+      event(ANTHROPIC_URL, { model: "claude-opus-5-5", system: "sys", tools, thread: { type: "create" }, messages: [q] },
+        reply("msg_a", { type: "tool_use", id: "toolu_1", name: "Bash", input: { command: "ls" } }), { request_headers: hdr }),
+      event(ANTHROPIC_URL, {
+        model: "claude-opus-5-5",
+        system: "sys",
+        thread: { type: "continue", previous_message_id: "msg_a" },
+        messages: [{ role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: "a.txt" }] }],
+      }, reply("msg_b", { type: "text", text: "One file." }), { request_headers: hdr }),
+    ]);
+    expect(ids[1]!.sessionId).toBe(ids[0]!.sessionId);
+    const n = store.getRequest(ids[1]!.requestId)!.normalized;
+    expect(n.messages.map((m: any) => m.role)).toEqual(["user", "assistant", "user"]);
+    expect(n.tools.map((t: any) => t.name)).toEqual(["Bash"]);
+  });
+
+  test("retries of the same side call share one side session", () => {
+    const url = "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse";
+    const title = () =>
+      event(url, { requestType: "checkpoint", request: { sessionId: "s", contents: [{ role: "user", parts: [{ text: "hi" }] }] } }, "", { status: 503 });
+    const ids = ingestAll([title(), title(), title()]);
+    expect(new Set(ids.map((i) => i.sessionId)).size).toBe(1);
+    expect(store.getSession(ids[0]!.sessionId)!.request_count).toBe(3);
+  });
+
   test("header session id groups turns even when the tool set changes", () => {
     const hdr = { "x-claude-code-session-id": "sess-1" };
     const turns = anthropicTurns().map((e, i) => {
@@ -170,6 +206,38 @@ describe("session grouping", () => {
     const r = store.getRequest(a.requestId)!;
     expect(r.state).toBe("done");
     expect(r.normalized.response.stopReason).toBe("tool_use");
+  });
+
+  test("Antigravity: each conversation is its own session; title calls stay out of them", () => {
+    const url = "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse";
+    const headers = { "content-type": "application/json", "user-agent": "antigravity/cli/1.2.11 (aidev_client; os_type=darwin)" };
+    const tools = [{ functionDeclarations: [{ name: "view_file", parameters: { type: "object" } }] }];
+    const prompt = { role: "user", parts: [{ text: "<USER_REQUEST>\nhi\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nlocal time\n</ADDITIONAL_METADATA>" }] };
+    const reply = { role: "model", parts: [{ text: "Hello!" }] };
+    const next = { role: "user", parts: [{ text: "<USER_REQUEST>\ntell me a story\n</USER_REQUEST>" }] };
+    const stream = (text: string) => sse([[null, { response: { candidates: [{ content: { role: "model", parts: [{ text }] }, finishReason: "STOP" }] } }]]);
+    // `sessionId` is the CLI process; the conversation is only in an agent turn's requestId.
+    const body = (requestId: string, request: object) => ({
+      requestType: requestId.split("/")[0],
+      requestId,
+      model: "gemini-3.8-flash",
+      request: { ...request, sessionId: "proc" },
+    });
+    const title = () => event(url, body("checkpoint/x", { contents: [{ role: "user", parts: [{ text: "hi" }] }] }), stream("Greeting"), { request_headers: headers });
+    const ids = ingestAll([
+      title(),
+      event(url, body("agent/conv-1/1/t/1", { contents: [prompt], tools }), stream("Hello!"), { request_headers: headers }),
+      event(url, body("agent/conv-1/2/t/3", { contents: [prompt, reply, next], tools }), stream("Once upon a time"), { request_headers: headers }),
+      title(),
+      event(url, body("agent/conv-2/3/t2/1", { contents: [prompt], tools }), stream("Hello!"), { request_headers: headers }),
+    ]);
+    const conv1 = store.getSession(ids[1]!.sessionId)!;
+    expect(ids[2]!.sessionId).toBe(conv1.id);
+    expect(conv1).toMatchObject({ title: "hi", client: "antigravity", session_id: "conv-1", parent_id: null, child_count: 0 });
+    expect(store.getSession(ids[4]!.sessionId)).toMatchObject({ session_id: "conv-2", parent_id: null });
+    // Both title calls say "hi", so they share one "title" session, belonging to no conversation.
+    expect(ids[3]!.sessionId).toBe(ids[0]!.sessionId);
+    expect(store.getSession(ids[0]!.sessionId)).toMatchObject({ session_id: "proc", agent_name: "title", request_count: 2 });
   });
 
   test("openai chat, responses and gemini each group into one session", () => {

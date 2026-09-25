@@ -15,6 +15,7 @@ const has = (h: Headers, ...names: string[]) => header(h, ...names) !== undefine
 const RULES: ClientRule[] = [
   { name: "claude-code", test: (h, ua) => /^claude-cli\//i.test(ua) || has(h, "x-claude-code-session-id") },
   { name: "codex", test: (h, ua) => /^codex/i.test(ua) || /^codex/i.test(header(h, "originator") ?? "") },
+  { name: "antigravity", test: (_, ua) => /^antigravity\//i.test(ua) },
   { name: "gemini-cli", test: (_, ua) => /^GeminiCLI\//i.test(ua) || /gemini-cli/i.test(ua) },
   { name: "opencode", test: (h, ua) => /^opencode\//i.test(ua) || has(h, "x-opencode-session") },
   { name: "kilo", test: (h, ua) => /kilo-?code/i.test(ua) || has(h, "x-kilocode-taskid") },

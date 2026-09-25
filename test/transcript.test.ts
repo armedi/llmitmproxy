@@ -63,6 +63,8 @@ describe("boundaries", () => {
     expect(boundaryOf("<system-reminder>\nhi\n</system-reminder>")).toEqual({ tag: "system-reminder", label: "System reminder", body: "hi" });
     expect(boundaryOf("<system-reminder>x</system-reminder> and more")).toBeUndefined();
     expect(boundaryOf("plain")).toBeUndefined();
+    // Unknown tags are the client's own prompt markup, shown as the user's text.
+    expect(boundaryOf("<USER_REQUEST>\nhi\n</USER_REQUEST>\n<ADDITIONAL_METADATA>t</ADDITIONAL_METADATA>")).toBeUndefined();
   });
 });
 

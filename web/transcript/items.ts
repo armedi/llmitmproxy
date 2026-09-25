@@ -2,7 +2,10 @@ import type { Block, Message, Normalized } from "../../server/types";
 
 export type ToolResult = Extract<Block, { type: "tool_result" }>;
 
-/** Tags agents wrap injected context in. A text block made only of these is a boundary, not a prompt. */
+/**
+ * Tags agents wrap injected context in. A text block made only of these is a boundary, not a prompt.
+ * Other tags are left alone: clients wrap the prompt itself in tags too (Antigravity's <USER_REQUEST>).
+ */
 const TAG_BLOCK = /<([a-z][a-z0-9_-]*)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi;
 const TAG_LABELS: Record<string, string> = {
   "system-reminder": "System reminder",
@@ -32,9 +35,10 @@ export interface Boundary {
 export function boundaryOf(text: string): Boundary | undefined {
   const tags = [...text.matchAll(TAG_BLOCK)];
   if (!tags.length || text.replace(TAG_BLOCK, "").trim()) return undefined;
+  if (!tags.every((m) => m[1]!.toLowerCase() in TAG_LABELS)) return undefined;
   const tag = tags[0]![1]!.toLowerCase();
   const body = tags.map((m) => m[2]!.trim()).filter(Boolean).join("\n");
-  return { tag, label: TAG_LABELS[tag] ?? tag, body };
+  return { tag, label: TAG_LABELS[tag]!, body };
 }
 
 export interface MessageItem {

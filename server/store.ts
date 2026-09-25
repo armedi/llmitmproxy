@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { detectClient } from "./clients";
 import { bodyText, normalizeRequest, normalizeResponse } from "./parsers";
 import { costOf, loadPricing, type Pricing } from "./pricing";
-import { fingerprint, matchSession, messageHashes, titleFor } from "./sessions";
+import { fingerprint, hash, matchSession, messageHashes, titleFor } from "./sessions";
 import type { IngestEvent, Normalized, Provider, Usage } from "./types";
 
 export interface SessionRow {
@@ -233,13 +233,14 @@ export class Store {
         if (existing.state !== "pending") return { sessionId, requestId };
       } else {
         n = normalizeRequest(ev);
-        // A side call gets its own child session, which later turns can never join by prefix.
-        if (n.sideCall && !n.agentId) {
-          n.agentId = `side:${ev.flow_id}`;
-          n.agentName ??= "side call";
-        }
         this.stitchPrevious(n);
         const hashes = messageHashes(n.messages);
+        // A side call gets its own child session, which later turns can never join by prefix.
+        // Keyed by its messages, so a client's retries of the same call share it.
+        if (n.sideCall && !n.agentId) {
+          n.agentId = `side:${hash(hashes.join())}`;
+          n.agentName ??= "side call";
+        }
         const client = detectClient(ev.request_headers ?? {});
         sessionId = this.findOrCreateSession(n, hashes, ev.started_at, client);
         // A session started by a prewarm had no prompt to take its title from; the first real turn does.
@@ -330,7 +331,7 @@ export class Store {
   }
 
   /**
-   * OpenAI Responses with previous_response_id only sends the new input items.
+   * OpenAI Responses with previous_response_id, and Anthropic message threads, only send the new input items.
    * Prepend the previous request's history and output so the latest request shows everything.
    */
   private stitchPrevious(n: Normalized) {

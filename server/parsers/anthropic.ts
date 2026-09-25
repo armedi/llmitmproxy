@@ -72,6 +72,8 @@ export function parseRequest(req: any): Omit<Normalized, "response"> {
     system: textBlocks(system),
     tools: toolDefs,
     messages: msgs,
+    // Message threads (Claude Code): a continuing request sends only the new messages, and no tools.
+    previousResponseId: params.thread?.type === "continue" ? params.thread.previous_message_id : undefined,
   };
 }
 

@@ -7,6 +7,7 @@ test.each([
   [{ "user-agent": "codex_cli_rs/0.50.0 (Mac OS 15.1; arm64)" }, "codex"],
   [{ originator: "codex_cli_rs" }, "codex"],
   [{ "user-agent": "GeminiCLI/0.9.0 (darwin; arm64)" }, "gemini-cli"],
+  [{ "user-agent": "antigravity/cli/1.2.11 (aidev_client; os_type=darwin; arch=arm64)" }, "antigravity"],
   [{ "user-agent": "opencode/1.0.0" }, "opencode"],
   [{ "x-kilocode-taskid": "t" }, "kilo"],
   [{ "user-agent": "RooCode/3.0" }, "roo"],

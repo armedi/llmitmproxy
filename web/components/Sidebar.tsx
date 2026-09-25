@@ -316,6 +316,7 @@ const CLIENT_LABEL: Record<string, string> = {
   "claude-code": "Claude Code",
   codex: "Codex",
   "gemini-cli": "Gemini CLI",
+  antigravity: "Antigravity",
   opencode: "opencode",
   cline: "Cline",
   kilo: "Kilo",

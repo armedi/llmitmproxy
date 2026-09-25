@@ -1,6 +1,6 @@
 import type { Block, Message, Normalized } from "./types";
 
-const hash = (s: string) => Bun.hash(s).toString(36);
+export const hash = (s: string) => Bun.hash(s).toString(36);
 
 /**
  * Reduce a block to the parts that stay stable when a client resends history.
@@ -90,7 +90,10 @@ export function titleFor(n: Normalized): string {
   // Codex sends injected context (<environment_context>) as its own user message before the prompt.
   const real = texts.find((t) => t.trim() && !TAG_ONLY.test(t)) ?? texts.find((t) => t.trim());
   if (real) {
-    const clean = real.replace(/<([a-z0-9_-]+)[^>]*>[\s\S]*?<\/\1>/gi, " ").replace(/\s+/g, " ").trim() || real.trim();
+    const squash = (t: string) => t.replace(/\s+/g, " ").trim();
+    // Antigravity wraps the prompt itself in a tag (<USER_REQUEST>), followed by tagged metadata.
+    const inner = /<([a-z0-9_-]+)[^>]*>([\s\S]*?)<\/\1>/i.exec(real)?.[2] ?? "";
+    const clean = squash(real.replace(/<([a-z0-9_-]+)[^>]*>[\s\S]*?<\/\1>/gi, " ")) || squash(inner) || real.trim();
     return clean.slice(0, 120);
   }
   return n.model ? `(${n.model})` : "(untitled)";
