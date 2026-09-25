@@ -12,6 +12,13 @@ OpenAI Responses over WebSocket (Codex's `wss://chatgpt.com/backend-api/codex/re
 is captured too: each `response.create` frame and the server events answering it become one
 request, with the events re-encoded as SSE.
 
+The addon never holds traffic back. Captured bodies are streamed through as they arrive
+(mitmproxy would otherwise read each one in full before forwarding it, so a streamed LLM
+response would reach the client all at once), with a copy kept on the side. Hooks only take
+references; decoding and encoding happen on the writer thread. The copies and the write
+queue are both capped, so a huge body or a stalled disk drops captures instead of growing
+memory.
+
     mitmdump -s addon/mitllmproxy_addon.py
     mitmweb  -s addon/mitllmproxy_addon.py
 
@@ -34,13 +41,21 @@ import time
 from pathlib import Path
 
 from mitmproxy import http
+from mitmproxy.net import encoding
 
 WS_FINAL = {"response.completed", "response.failed", "response.incomplete", "error"}
+# A frame's "type" when it's the first key (as OpenAI and Codex send it), read without parsing
+# the whole frame; anything else falls back to json.loads.
+WS_TYPE = re.compile(r'\s*\{\s*"type"\s*:\s*"([\w.\-]*)"\s*[,}]')
 
 log = logging.getLogger("mitllmproxy")
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "capture-urls.json"
 DEFAULT_DB = Path.home() / ".mitllmproxy" / "mitllmproxy.db"
+# Largest body copied per request or response; bigger ones still pass through, but uncaptured.
+MAX_BODY_COPY = 64 * 1024 * 1024
+# Bytes of bodies waiting in the write queue; events past this are dropped.
+MAX_QUEUED_BYTES = 256 * 1024 * 1024
 REDACT_HEADERS = {
     "authorization",
     "proxy-authorization",
@@ -56,8 +71,8 @@ def _compile(pattern: str):
     if pattern.startswith("re:"):
         rx = re.compile(pattern[3:])
         return lambda full, short: bool(rx.search(full))
-    glob = pattern.split("://", 1)[-1]
-    return lambda full, short: fnmatch.fnmatchcase(short, glob)
+    glob = re.compile(fnmatch.translate(pattern.split("://", 1)[-1]))
+    return lambda full, short: glob.match(short) is not None
 
 
 class Config:
@@ -91,24 +106,129 @@ def _headers(h) -> dict[str, str]:
     return out
 
 
-def _body(msg: http.Message | None) -> dict | None:
+class _Body:
+    """A body as the hook saw it: the raw bytes (immutable, not copied) and their content-encoding.
+    Decoded into the event on the writer thread."""
+
+    __slots__ = ("raw", "enc", "size")
+
+    def __init__(self, raw: bytes, enc: str) -> None:
+        self.raw = raw
+        self.enc = enc
+        self.size = len(raw)
+
+    def encode(self) -> dict:
+        content = self.raw
+        if self.enc and self.enc != "identity":
+            try:
+                content = encoding.decode(self.raw, self.enc)
+            except Exception:
+                pass
+        try:
+            return {"text": content.decode("utf-8")}
+        except UnicodeDecodeError:
+            return {"base64": base64.b64encode(content).decode("ascii")}
+
+
+class _SSE:
+    """A WebSocket turn's server events, re-encoded as SSE on the writer thread."""
+
+    __slots__ = ("events", "size")
+
+    def __init__(self, events: list, size: int) -> None:
+        self.events = events
+        self.size = size
+
+    def encode(self) -> dict:
+        out = []
+        for t, text in self.events:
+            if t:
+                out.append(f"event: {t}\n")
+            out.append("data: " + text.replace("\n", " ") + "\n\n")
+        return {"text": "".join(out)}
+
+
+class _WSRequest:
+    """A `response.create` frame, turned into a request body (the frame minus "type") on the writer thread."""
+
+    __slots__ = ("text", "data", "size")
+
+    def __init__(self, text: str, data: dict | None) -> None:
+        self.text = text
+        self.data = data  # already parsed if the hook had to
+        self.size = len(text)
+
+    def encode(self) -> dict:
+        data = self.data
+        if data is None:
+            try:
+                data = json.loads(self.text)
+            except ValueError:
+                return {"text": self.text}
+        data.pop("type", None)
+        return {"text": json.dumps(data)}
+
+
+_LAZY = (_Body, _SSE, _WSRequest)
+
+
+def _body(msg: http.Message | None) -> _Body | None:
     if msg is None or msg.raw_content is None:
         return None
-    try:
-        content = msg.get_content(strict=False) or b""
-    except Exception:
-        content = msg.raw_content or b""
-    try:
-        return {"text": content.decode("utf-8")}
-    except UnicodeDecodeError:
-        return {"base64": base64.b64encode(content).decode("ascii")}
+    return _Body(msg.raw_content, msg.headers.get("content-encoding", "").strip().lower())
+
+
+def _size(event: dict) -> int:
+    n = 0
+    for k in ("request_body", "response_body"):
+        v = event.get(k)
+        if isinstance(v, _LAZY):
+            n += v.size
+    return n
+
+
+def _copier(flow: http.HTTPFlow, side: str):
+    """A stream callback: forwards every chunk unchanged, and keeps a copy of up to MAX_BODY_COPY
+    bytes in the flow's metadata. Past that the copy is dropped and the body isn't captured.
+    Chunks are kept by reference and joined once at the end."""
+    key = f"mitllmproxy_{side}"
+    chunks = flow.metadata[key] = []
+    size = 0
+
+    def copy(chunk: bytes) -> bytes:
+        nonlocal chunks, size
+        if chunks is not None and chunk:
+            size += len(chunk)
+            if size > MAX_BODY_COPY:
+                log.warning("mitllmproxy: %s body over %d bytes, not capturing it", side, MAX_BODY_COPY)
+                chunks = flow.metadata[key] = None
+            else:
+                chunks.append(chunk)
+        return chunk
+
+    return copy
+
+
+def _restore(flow: http.HTTPFlow, side: str) -> None:
+    """Put the copied body back on the message once it has passed (a streamed message is otherwise
+    empty), so mitmweb shows it and the hooks can read it. The copy is released."""
+    key = f"mitllmproxy_{side}"
+    if key not in flow.metadata:
+        return
+    chunks = flow.metadata.pop(key)
+    msg = flow.request if side == "req" else flow.response
+    if msg is not None and chunks is not None:
+        msg.raw_content = b"".join(chunks)
 
 
 class MitLlmProxy:
     def __init__(self) -> None:
         self.config = Config(CONFIG_PATH)
-        self.q: queue.Queue[dict] = queue.Queue(maxsize=1000)
+        self.q: queue.Queue[tuple[dict, int]] = queue.Queue()
+        self.queued_bytes = 0
+        self.lock = threading.Lock()
         self.failing = False
+        self.spool = self._spool_dir()
         threading.Thread(target=self._worker, name="mitllmproxy-writer", daemon=True).start()
 
     # ---- writing -------------------------------------------------------
@@ -121,17 +241,24 @@ class MitLlmProxy:
 
     def _worker(self) -> None:
         seq = 0
+        pid = os.getpid()
+        spool = self.spool
         while True:
-            event = self.q.get()
-            spool: Path | None = None
+            event, size = self.q.get()
             try:
-                spool = self._spool_dir()
-                spool.mkdir(parents=True, exist_ok=True)
+                for k in ("request_body", "response_body"):
+                    if isinstance(event.get(k), _LAZY):
+                        event[k] = event[k].encode()
+                data = json.dumps(event)
                 # Names sort in write order; write to a dotfile then rename so the server never sees partial files.
                 seq += 1
-                name = f"{time.time_ns():020d}-{os.getpid()}-{seq:08d}.json"
+                name = f"{time.time_ns():020d}-{pid}-{seq:08d}.json"
                 tmp = spool / f".{name}.tmp"
-                tmp.write_text(json.dumps(event), encoding="utf-8")
+                try:
+                    tmp.write_text(data, encoding="utf-8")
+                except FileNotFoundError:  # first write, or the directory was removed
+                    spool.mkdir(parents=True, exist_ok=True)
+                    tmp.write_text(data, encoding="utf-8")
                 os.replace(tmp, spool / name)
                 if self.failing:
                     log.info("mitllmproxy: writing to %s again", spool)
@@ -140,12 +267,19 @@ class MitLlmProxy:
                 if not self.failing:
                     log.warning("mitllmproxy: cannot write to %s (%s); dropping events until it works", spool, e)
                     self.failing = True
+            finally:
+                del event, data
+                with self.lock:
+                    self.queued_bytes -= size
 
     def _send(self, event: dict) -> None:
-        try:
-            self.q.put_nowait(event)
-        except queue.Full:
-            log.warning("mitllmproxy: write queue full, dropping event")
+        size = _size(event)
+        with self.lock:
+            if self.queued_bytes + size > MAX_QUEUED_BYTES:
+                log.warning("mitllmproxy: write queue over %d bytes, dropping event", MAX_QUEUED_BYTES)
+                return
+            self.queued_bytes += size
+        self.q.put_nowait((event, size))
 
     # ---- helpers -------------------------------------------------------
 
@@ -175,30 +309,38 @@ class MitLlmProxy:
     def _is_ws(flow: http.HTTPFlow) -> bool:
         return bool(flow.metadata.get("mitllmproxy_ws"))
 
+    @staticmethod
+    def _ws_headers(flow: http.HTTPFlow) -> tuple[str, dict, dict]:
+        """The handshake's URL and headers, shared by every turn (the event dicts are only read)."""
+        cached = flow.metadata.get("mitllmproxy_ws_headers")
+        if cached is None:
+            resp = _headers(flow.response.headers) if flow.response is not None else {}
+            resp["content-type"] = "text/event-stream"
+            cached = flow.metadata["mitllmproxy_ws_headers"] = (flow.request.pretty_url, _headers(flow.request.headers), resp)
+        return cached
+
     def _ws_event(self, flow: http.HTTPFlow, turn: dict, state: str) -> dict:
-        """One WebSocket turn as the event an HTTP request would produce."""
-        req = flow.request
+        """One WebSocket turn as the event an HTTP request would produce. `turn` is no longer
+        changed once a non-pending event is made from it."""
+        url, req_headers, resp_headers = self._ws_headers(flow)
         event = {
             "flow_id": turn["flow_id"],
             "state": state,
             "method": "POST",
-            "url": req.pretty_url,
+            "url": url,
             "started_at": turn["started_at"],
-            "request_headers": _headers(req.headers),
-            "request_body": {"text": turn["body"]},
+            "request_headers": req_headers,
+            "request_body": turn["body"],
         }
         if state == "pending":
             return event
-        headers = _headers(flow.response.headers) if flow.response is not None else {}
-        headers["content-type"] = "text/event-stream"
-        sse = "".join(f"event: {t}\ndata: {text}\n\n" if t else f"data: {text}\n\n" for t, text in turn["events"])
         event.update(
             {
                 "status": 200,
                 "response_started_at": turn["response_started_at"],
                 "ended_at": turn["ended_at"] or time.time(),
-                "response_headers": headers,
-                "response_body": {"text": sse},
+                "response_headers": resp_headers,
+                "response_body": _SSE(turn["events"], turn["size"]),
             }
         )
         return event
@@ -216,13 +358,24 @@ class MitLlmProxy:
 
     # ---- mitmproxy hooks -----------------------------------------------
 
-    def request(self, flow: http.HTTPFlow) -> None:
+    def requestheaders(self, flow: http.HTTPFlow) -> None:
         if self._want(flow) and not self._is_ws(flow):
+            flow.request.stream = _copier(flow, "req")
+
+    def responseheaders(self, flow: http.HTTPFlow) -> None:
+        if self._want(flow) and not self._is_ws(flow) and flow.response is not None:
+            flow.response.stream = _copier(flow, "resp")
+
+    def request(self, flow: http.HTTPFlow) -> None:
+        # With streaming on, this fires once the whole request body has passed.
+        if self._want(flow) and not self._is_ws(flow):
+            _restore(flow, "req")
             self._send(self._base(flow, "pending"))
 
     def response(self, flow: http.HTTPFlow) -> None:
         if not self._want(flow) or self._is_ws(flow):
             return
+        _restore(flow, "resp")
         resp = flow.response
         event = self._base(flow, "done")
         event.update(
@@ -242,6 +395,8 @@ class MitLlmProxy:
         if self._is_ws(flow):
             self._ws_close_turn(flow, str(flow.error) if flow.error else "websocket error")
             return
+        _restore(flow, "req")
+        _restore(flow, "resp")
         event = self._base(flow, "error")
         event["error"] = str(flow.error) if flow.error else "unknown error"
         event["ended_at"] = time.time()
@@ -259,23 +414,28 @@ class MitLlmProxy:
         if not msg.is_text:
             return
         text = msg.text
-        try:
-            data = json.loads(text)
-        except ValueError:
-            data = None
-        kind = data.get("type") if isinstance(data, dict) else None
+        data = None
+        m = WS_TYPE.match(text)
+        if m:
+            kind = m.group(1)
+        else:
+            try:
+                data = json.loads(text)
+            except ValueError:
+                pass
+            kind = data.get("type") if isinstance(data, dict) else None
         if msg.from_client:
             if kind != "response.create":
                 return
             self._ws_close_turn(flow, "superseded by a new response.create")
             seq = flow.metadata.get("mitllmproxy_seq", 0) + 1
             flow.metadata["mitllmproxy_seq"] = seq
-            del data["type"]
             turn = {
                 "flow_id": f"{flow.id}-ws{seq}",
                 "started_at": msg.timestamp,
-                "body": json.dumps(data),
+                "body": _WSRequest(text, data),
                 "events": [],
+                "size": 0,
                 "response_started_at": None,
                 "ended_at": None,
             }
@@ -285,7 +445,8 @@ class MitLlmProxy:
         turn = flow.metadata.get("mitllmproxy_turn")
         if turn is None:
             return
-        turn["events"].append((kind if isinstance(kind, str) else None, text.replace("\n", " ")))
+        turn["events"].append((kind if isinstance(kind, str) else None, text))
+        turn["size"] += len(text)
         if turn["response_started_at"] is None:
             turn["response_started_at"] = msg.timestamp
         if kind in WS_FINAL:
