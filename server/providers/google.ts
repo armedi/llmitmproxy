@@ -1,4 +1,5 @@
-import { hostIs, str, type ProviderDef } from "./types";
+import { hostIs, str } from "./helpers";
+import type { ProviderDef } from "./types";
 
 export const google: ProviderDef = {
   name: "google",

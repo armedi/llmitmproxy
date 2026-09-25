@@ -1,4 +1,5 @@
-import { header, withParent, type ProviderDef } from "./types";
+import { header, withParent } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /**
  * Conventions not tied to one provider, for any host.

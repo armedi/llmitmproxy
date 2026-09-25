@@ -1,4 +1,5 @@
-import { hostIs, str, type ProviderDef } from "./types";
+import { hostIs, str } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /**
  * OpenRouter's documented session id: body `session_id`, which wins over the `x-session-id`

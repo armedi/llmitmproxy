@@ -1,4 +1,5 @@
-import { header, type Headers } from "./providers/types";
+import { header } from "./providers/helpers";
+import type { Headers } from "./providers/types";
 
 /**
  * The agent or app that sent a request (Claude Code, Codex, …), as opposed to the API

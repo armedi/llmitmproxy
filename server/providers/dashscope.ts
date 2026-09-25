@@ -1,4 +1,5 @@
-import { hostIs, str, type ProviderDef } from "./types";
+import { hostIs, str } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** Alibaba DashScope / Model Studio, including the coding and token plans. */
 export const dashscope: ProviderDef = {

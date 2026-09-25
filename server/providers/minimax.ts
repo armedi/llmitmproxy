@@ -1,4 +1,5 @@
-import { header, hostIs, type ProviderDef } from "./types";
+import { header, hostIs } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** MiniMax, and MiniMax Code (Mavis), which sends its session header to every provider. */
 export const minimax: ProviderDef = {

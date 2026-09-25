@@ -1,4 +1,5 @@
-import { hostIs, str, type ProviderDef } from "./types";
+import { hostIs, str } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** Volcengine Ark (Doubao) and BytePlus ModelArk. */
 export const ark: ProviderDef = {

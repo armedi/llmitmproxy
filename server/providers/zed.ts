@@ -1,4 +1,5 @@
-import { hostIs, str, type ProviderDef } from "./types";
+import { hostIs, str } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /**
  * Zed's hosted models (cloud.zed.dev). The request envelope carries the agent thread id.

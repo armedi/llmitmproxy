@@ -1,4 +1,5 @@
-import { header, hostIs, withParent, type ProviderDef } from "./types";
+import { header, hostIs, withParent } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /**
  * Xiaomi MiMo. MiMo Code is an opencode fork that declares its session only as

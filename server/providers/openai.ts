@@ -1,4 +1,5 @@
-import { header, hostIs, str, type Headers, type ProviderDef } from "./types";
+import { header, hostIs, str } from "./helpers";
+import type { Headers, ProviderDef } from "./types";
 
 /** Codex's `x-codex-turn-metadata`: per turn in the WebSocket body's `client_metadata`, else the header. */
 function codexTurn(h: Headers, body: any): any {

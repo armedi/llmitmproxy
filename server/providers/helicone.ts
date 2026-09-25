@@ -1,4 +1,5 @@
-import { header, hostIs, type ProviderDef } from "./types";
+import { header, hostIs } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** Helicone sessions. `Helicone-Session-Path` (`/parent/child`) places a request in the session tree. */
 export const helicone: ProviderDef = {

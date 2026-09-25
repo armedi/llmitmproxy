@@ -1,4 +1,5 @@
-import { header, str, type ProviderDef } from "./types";
+import { header, str } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** The LiteLLM proxy is self-hosted, so it has no host to match; its session fields apply anywhere. */
 export const litellm: ProviderDef = {

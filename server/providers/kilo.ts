@@ -1,4 +1,5 @@
-import { header, hostIs, withParent, type ProviderDef } from "./types";
+import { header, hostIs, withParent } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** The Kilo Code gateway. */
 export const kilo: ProviderDef = {

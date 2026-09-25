@@ -1,4 +1,5 @@
-import { header, hostIs, type ProviderDef } from "./types";
+import { header, hostIs } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** xAI's conversation id for sticky routing on Chat Completions. */
 export const xai: ProviderDef = {

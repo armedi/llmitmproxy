@@ -1,4 +1,5 @@
-import { header, hostIs, withParent, type ProviderDef } from "./types";
+import { header, hostIs, withParent } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** Tencent CodeBuddy Code and its gateways. Subagents get their own conversation pointing to the parent's. */
 export const codebuddy: ProviderDef = {

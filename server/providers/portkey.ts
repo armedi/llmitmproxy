@@ -1,4 +1,5 @@
-import { header, hostIs, type ProviderDef } from "./types";
+import { header, hostIs } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** Portkey traces group the calls of one workflow. */
 export const portkey: ProviderDef = {

@@ -1,4 +1,5 @@
-import { header, hostIs, str, type ProviderDef } from "./types";
+import { header, hostIs, str } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** Claude Code puts the session id in metadata.user_id, either as JSON or as `..._session_<uuid>`. */
 function userIdSession(body: any): string | undefined {

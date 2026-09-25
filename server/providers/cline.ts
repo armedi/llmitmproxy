@@ -1,4 +1,5 @@
-import { header, hostIs, type ProviderDef } from "./types";
+import { header, hostIs } from "./helpers";
+import type { ProviderDef } from "./types";
 
 /** Cline's own billing provider. */
 export const cline: ProviderDef = {
