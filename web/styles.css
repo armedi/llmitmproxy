@@ -994,7 +994,24 @@ input[type="search"]::-webkit-search-decoration {
 .related {
   font-size: var(--text-xs);
 }
+/* The parent link and the children summary share one row height, so the tabs below sit at the
+   same place whether a main session or one of its side calls is open. */
+.related-line,
 .related > summary {
+  height: 1.25rem;
+}
+.related-line {
+  font-size: var(--text-xs);
+  flex-wrap: nowrap;
+}
+.related-line .link {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.related > summary {
+  line-height: 1.25rem;
   cursor: pointer;
   width: fit-content;
   font-family: var(--font-mono);
@@ -1321,120 +1338,133 @@ input[type="search"]::-webkit-search-decoration {
   margin: var(--space-3xs) 0 var(--space-2xs) var(--space-sm);
 }
 
-/* Injected context (reminders, command echoes, hook output): one muted line, indented to the content column. */
-.boundaries {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-2xs) var(--space-md) var(--space-2xs) calc(var(--space-md) + var(--gutter));
-}
-.boundary {
-  margin: var(--space-4xs) 0;
-  font-size: var(--text-xs);
-}
-.boundary > summary {
-  cursor: pointer;
-  display: flex;
-  gap: var(--space-2xs);
-  align-items: baseline;
-  min-width: 0;
-  color: var(--color-muted);
-  list-style: none;
-}
-.boundary > summary::-webkit-details-marker {
-  display: none;
-}
-.boundary > summary:hover {
-  color: var(--color-ink);
-}
-.boundary > summary::before {
-  content: "▸";
-  font-size: var(--text-2xs);
-  color: var(--color-faint);
-}
-.boundary[open] > summary::before {
-  content: "▾";
-}
-.boundary > .text {
-  margin: var(--space-3xs) 0 var(--space-2xs) var(--space-sm);
-  padding-left: var(--space-xs);
-  border-left: var(--rule);
-  font-size: var(--text-xs);
-  color: var(--color-muted);
-}
 .text > * + * {
   margin-top: var(--space-2xs);
 }
-.text > .xml + .xml {
-  margin-top: var(--space-4xs);
+.text > .xml + .xml,
+.text:has(> .xml:last-child) + .text:has(> .xml:first-child) {
+  margin-top: var(--space-3xs);
 }
-.xml > summary {
-  cursor: pointer;
+.text > .xml + :not(.xml),
+.text:has(> .xml:last-child) + .text:not(:has(> .xml:first-child)) {
+  margin-top: var(--space-sm);
+}
+/* XML sections: a tag chip heads each one; open, a rail runs down the body and folds it back on click. */
+.xml {
+  --x-chev: 1rem;
+}
+.xml > summary,
+.xml-inline {
   display: flex;
   gap: var(--space-2xs);
   align-items: baseline;
   min-width: 0;
-  width: fit-content;
   max-width: 100%;
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  color: var(--color-muted);
+}
+.xml > summary {
+  cursor: pointer;
+  width: fit-content;
   list-style: none;
+  border-radius: var(--radius-sm);
 }
 .xml > summary::-webkit-details-marker {
   display: none;
 }
-.xml > summary:hover {
-  color: var(--color-ink);
-}
 .xml > summary::before {
   content: "▸";
-  color: var(--color-faint);
+  flex: none;
+  width: var(--x-chev);
+  margin-right: calc(-1 * var(--space-2xs));
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  transition: transform var(--dur-short) var(--ease-out);
 }
 .xml[open] > summary::before {
-  content: "▾";
+  transform: rotate(90deg);
+}
+.xml-inline {
+  padding-left: var(--x-chev);
 }
 .x-tag {
+  flex: none;
   white-space: nowrap;
+  padding: 0 var(--space-3xs);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 1.6;
+  color: var(--color-muted);
+  transition:
+    color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out);
 }
-.x-preview {
-  color: var(--color-faint);
+.xml > summary:hover .x-tag,
+.xml[open] > summary .x-tag {
+  color: var(--color-ink);
+  border-color: var(--color-rule-2);
+}
+.xml > summary:hover::before {
+  color: var(--color-ink);
+}
+.xml > summary:active .x-tag {
+  background: var(--color-paper-4);
 }
 .x-preview {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--color-faint);
 }
-.xml > .text {
-  margin: var(--space-3xs) 0 var(--space-2xs) var(--space-3xs);
-  padding-left: var(--space-xs);
-  border-left: var(--rule);
+.xml[open] > summary .x-preview {
+  display: none;
+}
+.x-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-ink-2);
+}
+.x-body {
+  position: relative;
+  margin: var(--space-3xs) 0 var(--space-xs);
+  padding-left: calc(var(--x-chev) + var(--space-2xs));
+}
+.x-body > .text {
   font-size: 0.95em;
 }
-.x-close {
-  margin-bottom: var(--space-2xs);
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  color: var(--color-faint);
+/* The rail: a hairline down the chevron's centre, with a wider invisible hit area. */
+.x-rail {
+  all: unset;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--x-chev);
+  cursor: pointer;
 }
-.b-label {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  font-size: var(--text-2xs);
-  font-weight: 500;
-  letter-spacing: var(--tracking-label);
-  white-space: nowrap;
+.x-rail::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 0.5px);
+  width: 1px;
+  background: var(--color-rule-2);
+  transition: background-color var(--dur-short) var(--ease-out);
 }
-.b-preview {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  color: var(--color-faint);
+.x-rail:hover::before,
+.xml > summary:hover + .x-body > .x-rail::before {
+  background: var(--color-accent);
 }
-
+.x-rail:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
 .thinking {
   margin: var(--space-3xs) 0 var(--space-2xs);
   color: var(--color-muted);
@@ -2485,7 +2515,6 @@ code.tool-name[class*="cat-"] {
     padding-right: var(--space-sm);
   }
   .section-body,
-  .boundaries,
   .tool-group > :not(summary) {
     padding-left: var(--space-sm);
     padding-right: var(--space-sm);

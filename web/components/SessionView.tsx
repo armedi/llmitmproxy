@@ -236,7 +236,7 @@ function RequestPicker({ requests, shownId, onOpen }: { requests: RequestSummary
 function Related({ session, parent, children, onSelect }: Pick<Props, "session" | "parent" | "children" | "onSelect">) {
   if (parent) {
     return (
-      <div className="session-meta small">
+      <div className="session-meta related-line">
         <span className="chip">{kindLabel(session)}</span>
         <span className="muted">of</span>
         <button className="link" onClick={() => onSelect(parent.id)} title="Open the main session">

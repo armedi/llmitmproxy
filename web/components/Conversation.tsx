@@ -5,7 +5,7 @@ import { useKeys } from "../hooks";
 import { buildItems, focusItems, type Item, itemText, type MessageItem } from "../transcript/items";
 import { type Turn, turnsByIndex } from "../transcript/stats";
 import { category } from "../transcript/tools";
-import { BoundaryCard, Blocks, ForceOpen, LazyDetails, Text, Thread, type ThreadInfo } from "./Blocks";
+import { Blocks, ForceOpen, LazyDetails, Text, Thread, type ThreadInfo } from "./Blocks";
 import { Copy } from "./Copy";
 
 export interface FindState {
@@ -125,14 +125,6 @@ type ViewProps = Pick<Props, "sessionModel" | "onOpenRequest" | "detail"> & { tu
 
 function ItemView({ item, ...v }: ViewProps & { item: Item }) {
   switch (item.kind) {
-    case "boundary":
-      return (
-        <div className="boundaries">
-          {item.boundaries.map((b, i) => (
-            <BoundaryCard key={i} boundary={b} />
-          ))}
-        </div>
-      );
     case "tools":
       return <ToolGroup item={item} {...v} />;
     case "message":
@@ -184,7 +176,7 @@ function MessageView({ item, turns, sessionModel, onOpenRequest, detail }: ViewP
 /** Consecutive tool-only assistant turns, collapsed into one block. */
 function ToolGroup({ item, ...v }: ViewProps & { item: Extract<Item, { kind: "tools" }> }) {
   const counts = new Map<string, number>();
-  for (const m of item.items) if (m.kind === "message") for (const b of m.blocks) if (b.type === "tool_use") counts.set(b.name, (counts.get(b.name) ?? 0) + 1);
+  for (const m of item.items) for (const b of m.blocks) if (b.type === "tool_use") counts.set(b.name, (counts.get(b.name) ?? 0) + 1);
   return (
     <details className="tool-group" open>
       <summary>
@@ -198,19 +190,15 @@ function ToolGroup({ item, ...v }: ViewProps & { item: Extract<Item, { kind: "to
           ))}
         </span>
       </summary>
-      {item.items.map((m) =>
-        m.kind === "boundary" ? (
-          m.boundaries.map((b, i) => <BoundaryCard key={`${m.index}-${i}`} boundary={b} />)
-        ) : (
-          <div key={m.index} className="tg-step">
-            <div className="tg-step-head">
-              <span className="spacer" />
-              {v.turns.get(m.index) && <TurnMeta turn={v.turns.get(m.index)!} sessionModel={v.sessionModel} onOpenRequest={v.onOpenRequest} />}
-            </div>
-            <Blocks blocks={m.blocks} prose />
+      {item.items.map((m) => (
+        <div key={m.index} className="tg-step">
+          <div className="tg-step-head">
+            <span className="spacer" />
+            {v.turns.get(m.index) && <TurnMeta turn={v.turns.get(m.index)!} sessionModel={v.sessionModel} onOpenRequest={v.onOpenRequest} />}
           </div>
-        ),
-      )}
+          <Blocks blocks={m.blocks} prose />
+        </div>
+      ))}
     </details>
   );
 }
@@ -281,7 +269,7 @@ function Tools({ tools }: { tools: ToolDef[] }) {
             <code className={`tool-name cat-${category(t.name)}`}>{t.name}</code>
             {t.description && <span className="muted"> — {t.description.split("\n")[0]!.slice(0, 140)}</span>}
           </summary>
-          {t.description && <Text text={t.description} fold="all" />}
+          {t.description && <Text text={t.description} fold />}
           {t.schema != null && <pre className="json">{JSON.stringify(t.schema, null, 2)}</pre>}
         </details>
       ))}

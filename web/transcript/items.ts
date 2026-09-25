@@ -1,50 +1,6 @@
 import type { Block, Message, Normalized } from "../../server/types";
-import { parseXml, type XmlElement, type XmlNode, xmlText } from "./xml";
 
 export type ToolResult = Extract<Block, { type: "tool_result" }>;
-
-/**
- * Tags agents wrap injected context in. A text block made only of these is a boundary, not a prompt.
- * Other tags are left alone: clients wrap the prompt itself in tags too (Antigravity's <USER_REQUEST>).
- */
-const TAG_LABELS: Record<string, string> = {
-  "system-reminder": "System reminder",
-  "command-name": "Slash command",
-  "command-message": "Slash command",
-  "command-args": "Slash command",
-  "local-command-stdout": "Command output",
-  "local-command-stderr": "Command output",
-  "local-command-caveat": "Command caveat",
-  "task-notification": "Task notification",
-  "user-prompt-submit-hook": "Prompt hook",
-  "bash-input": "Shell input",
-  "bash-stdout": "Shell output",
-  "bash-stderr": "Shell output",
-  environment_context: "Environment context",
-  user_instructions: "User instructions",
-  "user-memory-input": "Memory",
-};
-
-/** Whether an agent wraps injected context (reminders, command output, …) in this tag. */
-export const isInjectedTag = (tag: string) => tag.toLowerCase() in TAG_LABELS;
-
-export interface Boundary {
-  tag: string;
-  label: string;
-  /** The tags' contents, parsed. */
-  nodes: XmlNode[];
-  /** The same as text. */
-  body: string;
-}
-
-/** The injected-context tags a text block consists of, if it is nothing but those. */
-export function boundaryOf(text: string): Boundary | undefined {
-  const top = parseXml(text);
-  if (!top.every((n): n is XmlElement => typeof n !== "string" && isInjectedTag(n.tag))) return undefined;
-  const nodes = top.flatMap((el) => el.children);
-  const tag = top[0]!.tag.toLowerCase();
-  return { tag, label: TAG_LABELS[tag]!, nodes, body: xmlText(nodes) };
-}
 
 export interface MessageItem {
   kind: "message";
@@ -55,21 +11,15 @@ export interface MessageItem {
   response?: boolean;
 }
 
-export interface BoundaryItem {
-  kind: "boundary";
-  index: number;
-  boundaries: Boundary[];
-}
-
-/** Consecutive assistant messages that only call tools, with any reminders injected between them. */
+/** Consecutive assistant messages that only call tools. */
 export interface ToolGroupItem {
   kind: "tools";
   index: number;
-  items: (MessageItem | BoundaryItem)[];
+  items: MessageItem[];
   calls: number;
 }
 
-export type Item = MessageItem | BoundaryItem | ToolGroupItem;
+export type Item = MessageItem | ToolGroupItem;
 
 /** tool_use id → its result, from any later message. */
 function pairResults(messages: Message[]): Map<string, ToolResult> {
@@ -78,13 +28,12 @@ function pairResults(messages: Message[]): Map<string, ToolResult> {
   return out;
 }
 
-const hasText = (blocks: Block[]) => blocks.some((b) => b.type === "text" && b.text.trim() && !boundaryOf(b.text));
+const hasText = (blocks: Block[]) => blocks.some((b) => b.type === "text" && b.text.trim());
 const isToolOnly = (m: MessageItem) => m.role === "assistant" && m.blocks.some((b) => b.type === "tool_use") && !hasText(m.blocks);
 
 /**
  * Turn a thread into display items: tool results move under their calls (a message left with
- * nothing else disappears), reminder-only messages become boundaries, and runs of tool-only
- * assistant messages collapse into one group.
+ * nothing else disappears) and runs of tool-only assistant messages collapse into one group.
  */
 export function buildItems(n: Normalized, pending = false): { items: Item[]; results: Map<string, ToolResult> } {
   const calls = new Set<string>();
@@ -92,7 +41,7 @@ export function buildItems(n: Normalized, pending = false): { items: Item[]; res
   if (n.response) for (const b of n.response.blocks) if (b.type === "tool_use" && b.id) calls.add(b.id);
   const results = new Map([...pairResults(n.messages)].filter(([id]) => calls.has(id)));
 
-  const flat: (MessageItem | BoundaryItem)[] = [];
+  const flat: MessageItem[] = [];
   n.messages.forEach((m, index) => {
     const blocks = m.content.filter((b) => !(b.type === "tool_result" && b.toolUseId && results.has(b.toolUseId)));
     if (!blocks.length) {
@@ -101,30 +50,22 @@ export function buildItems(n: Normalized, pending = false): { items: Item[]; res
       return;
     }
     const role = blocks.every((b) => b.type === "tool_result") ? "tool" : m.role;
-    const bounds = blocks.map((b) => (b.type === "text" ? boundaryOf(b.text) : undefined));
-    if (m.role === "user" && bounds.every((b) => b)) flat.push({ kind: "boundary", index, boundaries: bounds as Boundary[] });
-    else flat.push({ kind: "message", index, role, blocks });
+    flat.push({ kind: "message", index, role, blocks });
   });
   if (n.response || pending) flat.push({ kind: "message", index: n.messages.length, role: "assistant", blocks: n.response?.blocks ?? [], response: true });
 
   const items: Item[] = [];
-  let run: (MessageItem | BoundaryItem)[] = [];
+  let run: MessageItem[] = [];
   const flush = () => {
-    // Trailing boundaries aren't part of the group.
-    const tail: BoundaryItem[] = [];
-    while (run.length && run[run.length - 1]!.kind === "boundary") tail.unshift(run.pop() as BoundaryItem);
-    const tools = run.filter((i): i is MessageItem => i.kind === "message");
-    if (tools.length >= 2) {
-      const calls = tools.reduce((a, m) => a + m.blocks.filter((b) => b.type === "tool_use").length, 0);
+    if (run.length >= 2) {
+      const calls = run.reduce((a, m) => a + m.blocks.filter((b) => b.type === "tool_use").length, 0);
       items.push({ kind: "tools", index: run[0]!.index, items: run, calls });
     } else items.push(...run);
-    items.push(...tail);
     run = [];
   };
   for (const it of flat) {
     // The live response stays outside groups so it is always visible.
-    if (it.kind === "message" && isToolOnly(it) && !it.response) run.push(it);
-    else if (it.kind === "boundary" && run.length) run.push(it);
+    if (isToolOnly(it) && !it.response) run.push(it);
     else {
       flush();
       items.push(it);
@@ -175,7 +116,6 @@ export function itemText(it: Item, results: Map<string, ToolResult>): string {
   };
   const walk = (i: Item) => {
     if (i.kind === "message") i.blocks.forEach(visit);
-    else if (i.kind === "boundary") i.boundaries.forEach((b) => parts.push(b.body));
     else i.items.forEach(walk);
   };
   walk(it);

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseXml, type XmlElement, type XmlNode, xmlText } from "../web/transcript/xml";
+import { parseXml, type XmlElement, type XmlNode } from "../web/transcript/xml";
 
 const el = (tag: string, children: XmlNode[], attrs = ""): XmlElement => ({ tag, attrs, children });
 
@@ -70,8 +70,15 @@ describe("parseXml", () => {
   test("keeps indented top-level tags as text, so markdown lists stay whole", () => {
     const text = "- a\n  <note>\n  x\n  </note>\n- b";
     expect(parseXml(text)).toEqual([text]);
-    const code = "return (\n    <div>\n      <p>hi</p>\n    </div>\n  );";
+    const code = "return (\n    <div>\n      <p>hi</p>\n      <p>yo</p>\n    </div>\n  );";
     expect(parseXml(code)).toEqual([code]);
+  });
+
+  test("an indented tag right after a closed one continues the run", () => {
+    const text = "<command-name>/clear</command-name>\n            <command-message>clear</command-message>\n            <command-args></command-args>\n\n\nnext";
+    expect(parseXml(text)).toEqual([el("command-name", ["/clear"]), el("command-message", ["clear"]), el("command-args", []), "next"]);
+    // A blank line ends the run.
+    expect(parseXml("<a>x</a>\n\n  <b>y</b>")).toEqual([el("a", ["x"]), "  <b>y</b>"]);
   });
 
   test("an unclosed fence hides the rest", () => {
@@ -98,11 +105,5 @@ describe("parseXml", () => {
   test("tag names are case-sensitive", () => {
     const text = "<Doc>\nx\n</doc>";
     expect(parseXml(text)).toEqual([text]);
-  });
-});
-
-describe("xmlText", () => {
-  test("turns nodes back into text", () => {
-    expect(xmlText(parseXml('intro\n<a x="1">\n  <b></b>\n  hello\n</a>\nbye'))).toBe('intro\n<a x="1">\n<b></b>\nhello\n</a>\nbye');
   });
 });

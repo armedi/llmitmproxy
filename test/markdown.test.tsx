@@ -60,15 +60,15 @@ describe("clampMarkdown", () => {
 });
 
 describe("Text", () => {
-  const text = (t: string, { markdown = true, formatted = true, force = false, fold = "all" as "all" | "injected" | "none" } = {}) =>
+  const text = (t: string, { markdown = true, formatted = true, force = false, fold = true } = {}) =>
     renderToStaticMarkup(
       <Formatted.Provider value={formatted}>
         <ForceOpen.Provider value={force}>
-          <Text text={t} markdown={markdown} fold={fold === "none" ? undefined : fold} />
+          <Text text={t} markdown={markdown} fold={fold} />
         </ForceOpen.Provider>
       </Formatted.Provider>,
     );
-  const sample = "Hi **there**\n<system-reminder>\nsecret *note*\n</system-reminder>";
+  const sample = "Hi **there**\n<system-reminder>\nsecret *note*\nmore\n</system-reminder>";
 
   test("folds XML sections, collapsed", () => {
     const html = text(sample);
@@ -83,22 +83,29 @@ describe("Text", () => {
     expect(text(sample, { force: true })).toContain("<em>note</em>");
   });
 
-  test("renders each tag as one text node, closing tag included", () => {
-    const html = text('<file path="a.ts">\nx\n</file>', { force: true });
+  test("renders each tag as one text node", () => {
+    const html = text('<file path="a.ts">\nx\ny\n</file>', { force: true });
     expect(html).toContain('<span class="x-tag">&lt;file path=&quot;a.ts&quot;&gt;</span>');
-    expect(html).toContain('<div class="x-tag x-close">&lt;/file&gt;</div>');
+    expect(html).toContain('aria-label="Collapse &lt;file&gt;"');
   });
 
-  test("tool output folds only injected context, as plain text", () => {
-    const out = "<html>\n<body>\n</body>\n</html>\n<system-reminder>\nx\n</system-reminder>";
-    const html = text(out, { markdown: false, force: true, fold: "injected" });
-    expect(html).toContain('<details class="xml" open="">');
-    expect(html).toContain("<pre>x</pre>");
-    expect(html).toContain("<pre>&lt;html&gt;\n&lt;body&gt;\n&lt;/body&gt;\n&lt;/html&gt;</pre>");
+  test("short one-line sections render inline, not folded", () => {
+    const html = text("<command-name>/clear</command-name>\n<command-args></command-args>");
+    expect(html).toContain('<div class="xml xml-inline"><span class="x-tag">&lt;command-name&gt;</span><span class="x-value">/clear</span></div>');
+    expect(html).toContain('<div class="xml xml-inline"><span class="x-tag">&lt;command-args&gt;</span></div>');
+    expect(html).not.toContain("<details");
+  });
+
+  test("tool output folds every tag, as plain text", () => {
+    const out = "<html>\n<body>\n</body>\n</html>\n<system-reminder>\nx\ny\n</system-reminder>";
+    const html = text(out, { markdown: false, force: true });
+    expect(html).toContain('<span class="x-tag">&lt;html&gt;</span>');
+    expect(html).toContain('<span class="x-tag">&lt;system-reminder&gt;</span>');
+    expect(html).toContain("<pre>x\ny</pre>");
   });
 
   test("tool args don't fold", () => {
-    expect(text("<div>\nx\n</div>", { markdown: false, fold: "none" })).toBe('<div class="text"><pre>&lt;div&gt;\nx\n&lt;/div&gt;</pre></div>');
+    expect(text("<div>\nx\n</div>", { markdown: false, fold: false })).toBe('<div class="text"><pre>&lt;div&gt;\nx\n&lt;/div&gt;</pre></div>');
   });
 
   test("link definitions reach prose on the other side of a section", () => {

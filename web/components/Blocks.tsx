@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import type { Block } from "../api";
 import { nextFence } from "../transcript/fence";
-import { type Boundary, boundaryOf, isInjectedTag, type ToolResult } from "../transcript/items";
+import type { ToolResult } from "../transcript/items";
 import { parseXml, type XmlElement, type XmlNode } from "../transcript/xml";
 import { clampMarkdown, Formatted, Markdown } from "./Markdown";
 import { Parallel, ToolCall } from "./ToolCall";
@@ -50,14 +50,12 @@ export function Blocks({ blocks, prose = false, live = false }: { blocks: Block[
 function BlockView({ block: b, prose, live }: { block: Block; prose: boolean; live: boolean }) {
   const thread = useContext(Thread);
   switch (b.type) {
-    case "text": {
-      const boundary = prose ? boundaryOf(b.text) : undefined;
-      return boundary ? <BoundaryCard boundary={boundary} /> : <Text text={b.text} markdown={prose} fold={prose ? "all" : "injected"} />;
-    }
+    case "text":
+      return <Text text={b.text} markdown={prose} fold />;
     case "thinking":
       return (
         <LazyDetails className="thinking" summary={b.redacted || !b.text ? "Thinking (not returned by the API)" : `Thinking · ${b.text.length.toLocaleString()} chars`}>
-          {b.text && <Text text={b.text} markdown fold="all" />}
+          {b.text && <Text text={b.text} markdown fold />}
         </LazyDetails>
       );
     case "tool_use":
@@ -107,23 +105,6 @@ function BlockView({ block: b, prose, live }: { block: Block; prose: boolean; li
   }
 }
 
-/** Context an agent injected (reminders, slash-command echoes, hook output), kept out of the way. */
-export function BoundaryCard({ boundary: b }: { boundary: Boundary }) {
-  return (
-    <LazyDetails
-      className="boundary"
-      summary={
-        <>
-          <span className="b-label">{b.label}</span>
-          <span className="b-preview">{firstLine(b.body)}</span>
-        </>
-      }
-    >
-      <Text text={b.body} nodes={b.nodes} fold="all" />
-    </LazyDetails>
-  );
-}
-
 const firstLine = (text: string) => text.trim().split("\n")[0]!.slice(0, 200);
 
 /** A <details> whose body is only rendered once it has been opened. */
@@ -153,26 +134,22 @@ export function LazyDetails({
 }
 
 /**
- * Text, with XML sections folded when formatting is on. `fold`: which sections, "all" for prompt
- * text, "injected" for tool output (only the context an agent appends, since the output itself may
- * be HTML or code); tool args don't fold. `nodes`: the text already parsed. `markdown` renders the
- * prose as markdown.
+ * Text, with XML sections folded when formatting is on and `fold` is set; tool args don't fold.
+ * `markdown` renders the prose as markdown.
  */
 export function Text({
   text,
-  nodes: parsed,
   markdown = false,
   fold,
 }: {
   text: string;
-  nodes?: XmlNode[];
   markdown?: boolean;
-  fold?: "all" | "injected";
+  fold?: boolean;
 }) {
   const formatted = useContext(Formatted);
   const nodes = useMemo(
-    () => (!formatted || !fold ? [text] : (parsed ?? parseXml(text, fold === "injected" ? isInjectedTag : undefined))),
-    [text, parsed, formatted, fold],
+    () => (!formatted || !fold ? [text] : parseXml(text)),
+    [text, formatted, fold],
   );
   const md = markdown && formatted;
   // The prose between sections renders as separate markdown documents; each needs the whole text's link definitions.
@@ -254,22 +231,46 @@ function clampNodes(nodes: XmlNode[], markdown: boolean): XmlNode[] {
   return out;
 }
 
+/** Longest one-line body shown beside its tag instead of folded. */
+const INLINE_MAX = 120;
+
 function XmlSection({ el, markdown, defs }: { el: XmlElement; markdown: boolean; defs: string[] }) {
-  const first = el.children[0];
-  const preview = first == null ? "" : typeof first === "string" ? firstLine(first) : `<${first.tag}>`;
   // Each tag is one text node, so find can highlight a search for it.
+  const tag = <span className="x-tag">{`<${el.tag}${el.attrs.trimEnd()}>`}</span>;
+  const [first] = el.children;
+  // A short one-liner (<command-name>/clear</command-name>) reads better as a row than a fold.
+  if (el.children.length <= 1 && (first == null || (typeof first === "string" && !first.includes("\n") && first.length <= INLINE_MAX))) {
+    return (
+      <div className="xml xml-inline">
+        {tag}
+        {first != null && <span className="x-value">{first}</span>}
+      </div>
+    );
+  }
+  const preview = typeof first === "string" ? firstLine(first) : `<${first!.tag}>`;
   return (
     <LazyDetails
       className="xml"
       summary={
         <>
-          <span className="x-tag">{`<${el.tag}${el.attrs.trimEnd()}>`}</span>
+          {tag}
           <span className="x-preview">{preview}</span>
         </>
       }
     >
-      <Nodes nodes={el.children} markdown={markdown} defs={defs} />
-      <div className="x-tag x-close">{`</${el.tag}>`}</div>
+      <div className="x-body">
+        <button className="x-rail" aria-label={`Collapse <${el.tag}>`} title={`Collapse <${el.tag}>`} onClick={collapse} />
+        <Nodes nodes={el.children} markdown={markdown} defs={defs} />
+      </div>
     </LazyDetails>
   );
+}
+
+/** Close the section the rail belongs to, keeping its header in view. */
+function collapse(e: React.MouseEvent<HTMLButtonElement>) {
+  const details = e.currentTarget.closest("details")!;
+  details.open = false;
+  const summary = details.querySelector(":scope > summary")!;
+  if (summary.getBoundingClientRect().top < 0) summary.scrollIntoView({ block: "nearest" });
+  (summary as HTMLElement).focus({ preventScroll: true });
 }

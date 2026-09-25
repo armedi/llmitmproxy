@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { RequestSummary } from "../web/api";
 import { patchLines, replacementDiff, toolDiff } from "../web/transcript/diff";
-import { boundaryOf, buildItems, focusItems, itemText } from "../web/transcript/items";
+import { buildItems, focusItems, itemText } from "../web/transcript/items";
 import { turnsByIndex, vitals } from "../web/transcript/stats";
 import { category, commandOf, summarize } from "../web/transcript/tools";
 import type { Normalized } from "../server/types";
@@ -25,17 +25,22 @@ const thread = (): Normalized => ({
 });
 
 describe("display items", () => {
-  test("results pair with calls, tool-only runs group, reminders become boundaries", () => {
-    const { items, results } = buildItems(thread());
+  test("results pair with calls, tool-only runs group", () => {
+    const n = thread();
+    n.messages[4]!.content.pop(); // drop the reminder between the tool calls
+    const { items, results } = buildItems(n);
     expect(results.size).toBe(4);
-    expect(items.map((i) => i.kind)).toEqual(["message", "message", "tools", "boundary", "message"]);
+    expect(items.map((i) => i.kind)).toEqual(["message", "message", "tools", "message", "message"]);
     const group = items[2]!;
     if (group.kind !== "tools") throw new Error();
     expect(group.calls).toBe(3);
-    // The reminder injected between tool calls stays inside the group.
-    expect(group.items.map((i) => i.kind)).toEqual(["message", "boundary", "message"]);
-    expect(items[3]).toMatchObject({ kind: "boundary", boundaries: [{ tag: "command-name", label: "Slash command" }] });
     expect(items[4]).toMatchObject({ kind: "message", response: true });
+  });
+
+  test("tag-only text is an ordinary message, tags untouched", () => {
+    const { items } = buildItems(thread());
+    expect(items.find((i) => i.index === 4)).toMatchObject({ kind: "message", role: "user", blocks: [{ type: "text", text: "<system-reminder>todo</system-reminder>" }] });
+    expect(items.find((i) => i.index === 7)).toMatchObject({ kind: "message", role: "user", blocks: [{ text: "<command-name>/clear</command-name>\n<command-args></command-args>" }] });
   });
 
   test("unpaired results stay visible", () => {
@@ -45,27 +50,19 @@ describe("display items", () => {
     expect(items.some((i) => i.kind === "message" && i.role === "tool")).toBe(true);
   });
 
+  // Tag-only user messages (reminders, command echoes) count as prompts: tags aren't interpreted.
   test("focused mode keeps prompts and final answers", () => {
     const { items } = buildItems(thread());
-    expect(focusItems(items).map((i) => (i.kind === "message" ? `${i.role}#${i.index}` : i.kind))).toEqual(["user#0", "assistant#8"]);
+    expect(focusItems(items).map((i) => (i.kind === "message" ? `${i.role}#${i.index}` : i.kind))).toEqual(["user#0", "assistant#1", "user#4", "user#7", "assistant#8"]);
   });
 
   test("search text includes tool input and paired output", () => {
-    const { items, results } = buildItems(thread());
+    const n = thread();
+    n.messages[4]!.content.pop();
+    const { items, results } = buildItems(n);
     const text = itemText(items[2]!, results);
     expect(text).toContain("bun test");
     expect(text).toContain("pass");
-  });
-});
-
-describe("boundaries", () => {
-  test("tag-only text is a boundary, mixed text is not", () => {
-    expect(boundaryOf("<system-reminder>\nhi\n</system-reminder>")).toEqual({ tag: "system-reminder", label: "System reminder", nodes: ["hi"], body: "hi" });
-    expect(boundaryOf("<command-name>/model</command-name>\n<command-args></command-args>")).toMatchObject({ label: "Slash command", body: "/model" });
-    expect(boundaryOf("<system-reminder>x</system-reminder> and more")).toBeUndefined();
-    expect(boundaryOf("plain")).toBeUndefined();
-    // Unknown tags are the client's own prompt markup, shown as the user's text.
-    expect(boundaryOf("<USER_REQUEST>\nhi\n</USER_REQUEST>\n<ADDITIONAL_METADATA>t</ADDITIONAL_METADATA>")).toBeUndefined();
   });
 });
 

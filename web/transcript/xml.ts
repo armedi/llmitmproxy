@@ -21,11 +21,10 @@ const CLOSE = /<\/([A-Za-z][\w.:-]*)\s*>(\s*)$/;
  * Split text into prose and the XML-like elements prompts are full of (<system-reminder>, …).
  * Only block-level tags count: an open tag must start a line and its close tag end one, so inline
  * uses (`press <kbd>x</kbd>`, `Vec<T>`) stay text. An indented tag outside any element belongs to a
- * markdown list item or code block, so it stays text too. Tags inside code fences are ignored, and
- * a tag without a matching partner is left as literal text. `outer` limits which tags may fold
- * outside any element.
+ * markdown list item or code block, so it stays text too, unless it's on the line right after one closed. Tags inside code fences are ignored, and
+ * a tag without a matching partner is left as literal text.
  */
-export function parseXml(text: string, outer?: (tag: string) => boolean): XmlNode[] {
+export function parseXml(text: string): XmlNode[] {
   if (!text.includes("<")) return [text];
   const tokens = tokenize(text);
   if (!tokens.some((t) => t.kind !== "text")) return [text];
@@ -37,11 +36,17 @@ export function parseXml(text: string, outer?: (tag: string) => boolean): XmlNod
     const f = stack.pop()!;
     top().children.push(f.open!.raw, ...f.children);
   };
+  // Whether a top-level element closed at the end of the previous line: tags indented under it
+  // continue the run (Claude Code indents <command-message> under <command-name>).
+  let afterClose = false;
   for (const t of tokens) {
-    if (t.kind === "text") top().children.push(t.value);
-    else if (t.kind === "open") {
-      if (stack.length === 1 && (t.indent > 0 || (outer && !outer(t.tag)))) top().children.push(t.raw);
+    if (t.kind === "text") {
+      top().children.push(t.value);
+      afterClose &&= t.value === "\n";
+    } else if (t.kind === "open") {
+      if (stack.length === 1 && t.indent > 0 && !afterClose) top().children.push(t.raw);
       else stack.push({ open: t, children: [] });
+      afterClose = false;
     }
     else {
       let i = stack.length - 1;
@@ -53,6 +58,7 @@ export function parseXml(text: string, outer?: (tag: string) => boolean): XmlNod
       while (stack.length - 1 > i) revert();
       const f = stack.pop()!;
       top().children.push({ tag: t.tag, attrs: f.open!.attrs, children: clean(f.children, true) });
+      afterClose = stack.length === 1;
     }
   }
   while (stack.length > 1) revert();
@@ -137,11 +143,4 @@ function dedent(s: string): string {
   let min = Infinity;
   for (const l of lines) if (l.trim()) min = Math.min(min, /^[ \t]*/.exec(l)![0].length);
   return min === 0 || min === Infinity ? s : lines.map((l) => l.slice(Math.min(min, /^[ \t]*/.exec(l)![0].length))).join("\n");
-}
-
-/** The nodes as text again, each element's tags on their own lines. */
-export function xmlText(nodes: XmlNode[]): string {
-  return nodes
-    .map((n) => (typeof n === "string" ? n : `<${n.tag}${n.attrs}>${n.children.length ? `\n${xmlText(n.children)}\n` : ""}</${n.tag}>`))
-    .join("\n");
 }
