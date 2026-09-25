@@ -242,6 +242,9 @@ export class Store {
         const hashes = messageHashes(n.messages);
         const client = detectClient(ev.request_headers ?? {});
         sessionId = this.findOrCreateSession(n, hashes, ev.started_at, client);
+        // A session started by a prewarm had no prompt to take its title from; the first real turn does.
+        if (hashes.length)
+          this.db.query("UPDATE sessions SET title = ? WHERE id = ? AND latest_msg_count = 0").run(titleFor(n), sessionId);
         requestId = Number(
           this.db
             .query(
@@ -368,6 +371,12 @@ export class Store {
         .map((r) => ({ sessionId: r.id, hashes: JSON.parse(r.msg_hashes) as string[] }));
       const match = matchSession(candidates, hashes);
       if (match !== undefined) return match;
+      // Codex's prewarm carries no messages, only instructions, so no prefix links it to its turns.
+      // The session id alone is enough to put it together with them.
+      if (sid) {
+        const empty = candidates.find((c) => !c.hashes.length || !hashes.length);
+        if (empty) return empty.sessionId;
+      }
     }
     return Number(
       this.db

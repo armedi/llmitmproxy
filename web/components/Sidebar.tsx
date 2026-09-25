@@ -82,7 +82,7 @@ export function arrange(sessions: Session[], f: Filters, nowMs: number): { group
     if (f.client && (s.client ?? "") !== f.client) return false;
     if (f.errors && !fam.some((c) => c.last_error)) return false;
     if (f.recent && nowMs / 1000 - Math.max(...fam.map((c) => c.updated_at)) > 86400) return false;
-    if (f.hideOneOff && !(s.request_count > 1 || s.latest_msg_count > 1 || s.pending > 0 || s.child_count > 0)) return false;
+    if (f.hideOneOff && (isSideCall(s) || !(s.request_count > 1 || s.latest_msg_count > 1 || s.pending > 0 || s.child_count > 0))) return false;
     if (q && !fam.some((c) => [c.title, c.model, c.session_id, c.client, c.agent_name].some((v) => v?.toLowerCase().includes(q)))) return false;
     return true;
   });
@@ -252,6 +252,9 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
   );
 }
 
+/** A side call whose main session isn't known, such as Codex's title thread. */
+const isSideCall = (s: Session) => s.parent_id == null && !!s.agent_id?.startsWith("side:");
+
 function kindLabel(s: Session) {
   if (s.agent_id) return s.agent_name ?? "subagent";
   return s.latest_msg_count > 2 ? "thread" : "side call";
@@ -292,7 +295,7 @@ function Row({ s, status, active, inGroup, now, kids = 0, open, onToggle, onSele
         <span className={`status-dot ${status}`} title={STATUS_LABEL[status]} />
         <span className="s-body">
           <span className="s-title">
-            {child && <span className={`chip kind ${s.agent_id ? "agent" : ""}`}>{kindLabel(s)}</span>}
+            {(child || isSideCall(s)) && <span className={`chip kind ${s.agent_id ? "agent" : ""}`}>{kindLabel(s)}</span>}
             {s.title}
           </span>
           <span className="s-meta">

@@ -4,7 +4,7 @@ A live viewer for the LLM calls your agents make, captured through mitmproxy.
 
 Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Any single request can still be inspected in the **Raw** tab, which has a request picker.
 
-Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Claude on Vertex AI (`:rawPredict` / `:streamRawPredict`) is also supported. Both streaming (SSE) and non-streaming responses are supported.
+Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Claude on Vertex AI (`:rawPredict` / `:streamRawPredict`) is also supported. Both streaming (SSE) and non-streaming responses are supported. OpenAI Responses over WebSocket, which Codex uses for `wss://chatgpt.com/backend-api/codex/responses`, is captured too: each `response.create` frame and the events answering it become one request.
 
 ```
 client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ bun server (:4545) ──ws──▶ UI

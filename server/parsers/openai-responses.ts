@@ -73,14 +73,31 @@ function itemsToMessages(items: any[]): Message[] {
   return out;
 }
 
+/** Flatten tool definitions; Codex groups its tools into `{ type: "namespace", name, tools }`. */
+function toolDefs(tools: any[], ns?: string): ToolDef[] {
+  return tools.flatMap((t: any): ToolDef[] => {
+    if (t?.type === "namespace" && Array.isArray(t.tools)) return toolDefs(t.tools, t.name === "functions" ? ns : t.name);
+    const name = t?.name ?? t?.type;
+    return [
+      {
+        name: ns ? `${ns}.${name}` : name,
+        description: t?.description,
+        schema: t?.parameters ?? t?.format ?? (t?.type !== "function" ? { type: t?.type } : undefined),
+      },
+    ];
+  });
+}
+
 export function parseRequest(req: any): Omit<Normalized, "response"> {
   const { model, instructions, input, tools, stream, previous_response_id, ...params } = req ?? {};
-  const toolDefs: ToolDef[] = (tools ?? []).map((t: any) => ({
-    name: t.name ?? t.type,
-    description: t.description,
-    schema: t.parameters ?? t.format ?? (t.type !== "function" ? { type: t.type } : undefined),
-  }));
-  let messages: Message[] = typeof input === "string" ? [{ role: "user", content: [{ type: "text", text: input }] }] : itemsToMessages(input ?? []);
+  // Codex's WebSocket requests send their tools as an `additional_tools` input item instead.
+  const items: any[] = Array.isArray(input) ? input : [];
+  const extra = items.filter((it) => it?.type === "additional_tools").flatMap((it) => it.tools ?? []);
+  const defs = toolDefs([...(tools ?? []), ...extra]);
+  let messages: Message[] =
+    typeof input === "string"
+      ? [{ role: "user", content: [{ type: "text", text: input }] }]
+      : itemsToMessages(items.filter((it) => it?.type !== "additional_tools"));
   const system: Block[] = contentBlocks(instructions);
   // Leading system/developer messages belong with the instructions.
   while (messages[0]?.role === "system") system.push(...messages.shift()!.content);
@@ -90,7 +107,7 @@ export function parseRequest(req: any): Omit<Normalized, "response"> {
     stream: !!stream,
     params,
     system,
-    tools: toolDefs,
+    tools: defs,
     messages,
     previousResponseId: previous_response_id ?? undefined,
   };

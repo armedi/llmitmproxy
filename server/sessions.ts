@@ -84,14 +84,14 @@ function prefixScore(prev: string[], next: string[]): number {
 const TAG_ONLY = /^\s*<([a-z0-9_-]+)[^>]*>[\s\S]*<\/\1>\s*$/i;
 
 export function titleFor(n: Normalized): string {
-  for (const m of n.messages) {
-    if (m.role !== "user") continue;
-    const texts = m.content.filter((b): b is Extract<Block, { type: "text" }> => b.type === "text").map((b) => b.text);
-    const real = texts.find((t) => t.trim() && !TAG_ONLY.test(t)) ?? texts.find((t) => t.trim());
-    if (real) {
-      const clean = real.replace(/<([a-z0-9_-]+)[^>]*>[\s\S]*?<\/\1>/gi, " ").replace(/\s+/g, " ").trim() || real.trim();
-      return clean.slice(0, 120);
-    }
+  const texts = n.messages
+    .filter((m) => m.role === "user")
+    .flatMap((m) => m.content.filter((b): b is Extract<Block, { type: "text" }> => b.type === "text").map((b) => b.text));
+  // Codex sends injected context (<environment_context>) as its own user message before the prompt.
+  const real = texts.find((t) => t.trim() && !TAG_ONLY.test(t)) ?? texts.find((t) => t.trim());
+  if (real) {
+    const clean = real.replace(/<([a-z0-9_-]+)[^>]*>[\s\S]*?<\/\1>/gi, " ").replace(/\s+/g, " ").trim() || real.trim();
+    return clean.slice(0, 120);
   }
   return n.model ? `(${n.model})` : "(untitled)";
 }

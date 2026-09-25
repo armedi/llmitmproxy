@@ -8,6 +8,10 @@ server imports and deletes them whenever it runs, so capturing works without it.
 Stdlib only (mitmproxy's binary builds don't even ship sqlite3), so it runs inside
 mitmproxy's own environment without installing anything.
 
+OpenAI Responses over WebSocket (Codex's `wss://chatgpt.com/backend-api/codex/responses`)
+is captured too: each `response.create` frame and the server events answering it become one
+request, with the events re-encoded as SSE.
+
     mitmdump -s addon/mitllmproxy_addon.py
     mitmweb  -s addon/mitllmproxy_addon.py
 
@@ -30,6 +34,8 @@ import time
 from pathlib import Path
 
 from mitmproxy import http
+
+WS_FINAL = {"response.completed", "response.failed", "response.incomplete", "error"}
 
 log = logging.getLogger("mitllmproxy")
 
@@ -158,18 +164,64 @@ class MitLlmProxy:
     def _want(self, flow: http.HTTPFlow) -> bool:
         if flow.metadata.get("mitllmproxy") is not None:
             return flow.metadata["mitllmproxy"]
-        ok = flow.request.method == "POST" and self.config.matches(flow.request.pretty_url)
+        req = flow.request
+        ws = req.method == "GET" and req.headers.get("upgrade", "").lower() == "websocket"
+        ok = (req.method == "POST" or ws) and self.config.matches(req.pretty_url)
         flow.metadata["mitllmproxy"] = ok
+        flow.metadata["mitllmproxy_ws"] = ok and ws
         return ok
+
+    @staticmethod
+    def _is_ws(flow: http.HTTPFlow) -> bool:
+        return bool(flow.metadata.get("mitllmproxy_ws"))
+
+    def _ws_event(self, flow: http.HTTPFlow, turn: dict, state: str) -> dict:
+        """One WebSocket turn as the event an HTTP request would produce."""
+        req = flow.request
+        event = {
+            "flow_id": turn["flow_id"],
+            "state": state,
+            "method": "POST",
+            "url": req.pretty_url,
+            "started_at": turn["started_at"],
+            "request_headers": _headers(req.headers),
+            "request_body": {"text": turn["body"]},
+        }
+        if state == "pending":
+            return event
+        headers = _headers(flow.response.headers) if flow.response is not None else {}
+        headers["content-type"] = "text/event-stream"
+        sse = "".join(f"event: {t}\ndata: {text}\n\n" if t else f"data: {text}\n\n" for t, text in turn["events"])
+        event.update(
+            {
+                "status": 200,
+                "response_started_at": turn["response_started_at"],
+                "ended_at": turn["ended_at"] or time.time(),
+                "response_headers": headers,
+                "response_body": {"text": sse},
+            }
+        )
+        return event
+
+    def _ws_close_turn(self, flow: http.HTTPFlow, error: str) -> None:
+        turn = flow.metadata.pop("mitllmproxy_turn", None)
+        if turn is None:
+            return
+        event = self._ws_event(flow, turn, "error")
+        event["error"] = error
+        if not turn["events"]:
+            for k in ("status", "response_started_at", "response_headers", "response_body"):
+                event.pop(k)
+        self._send(event)
 
     # ---- mitmproxy hooks -----------------------------------------------
 
     def request(self, flow: http.HTTPFlow) -> None:
-        if self._want(flow):
+        if self._want(flow) and not self._is_ws(flow):
             self._send(self._base(flow, "pending"))
 
     def response(self, flow: http.HTTPFlow) -> None:
-        if not self._want(flow):
+        if not self._want(flow) or self._is_ws(flow):
             return
         resp = flow.response
         event = self._base(flow, "done")
@@ -187,6 +239,9 @@ class MitLlmProxy:
     def error(self, flow: http.HTTPFlow) -> None:
         if not self._want(flow):
             return
+        if self._is_ws(flow):
+            self._ws_close_turn(flow, str(flow.error) if flow.error else "websocket error")
+            return
         event = self._base(flow, "error")
         event["error"] = str(flow.error) if flow.error else "unknown error"
         event["ended_at"] = time.time()
@@ -196,6 +251,54 @@ class MitLlmProxy:
             event["response_headers"] = _headers(flow.response.headers)
             event["response_body"] = _body(flow.response)
         self._send(event)
+
+    def websocket_message(self, flow: http.HTTPFlow) -> None:
+        if not self._is_ws(flow) or flow.websocket is None:
+            return
+        msg = flow.websocket.messages[-1]
+        if not msg.is_text:
+            return
+        text = msg.text
+        try:
+            data = json.loads(text)
+        except ValueError:
+            data = None
+        kind = data.get("type") if isinstance(data, dict) else None
+        if msg.from_client:
+            if kind != "response.create":
+                return
+            self._ws_close_turn(flow, "superseded by a new response.create")
+            seq = flow.metadata.get("mitllmproxy_seq", 0) + 1
+            flow.metadata["mitllmproxy_seq"] = seq
+            del data["type"]
+            turn = {
+                "flow_id": f"{flow.id}-ws{seq}",
+                "started_at": msg.timestamp,
+                "body": json.dumps(data),
+                "events": [],
+                "response_started_at": None,
+                "ended_at": None,
+            }
+            flow.metadata["mitllmproxy_turn"] = turn
+            self._send(self._ws_event(flow, turn, "pending"))
+            return
+        turn = flow.metadata.get("mitllmproxy_turn")
+        if turn is None:
+            return
+        turn["events"].append((kind if isinstance(kind, str) else None, text.replace("\n", " ")))
+        if turn["response_started_at"] is None:
+            turn["response_started_at"] = msg.timestamp
+        if kind in WS_FINAL:
+            turn["ended_at"] = msg.timestamp
+            del flow.metadata["mitllmproxy_turn"]
+            self._send(self._ws_event(flow, turn, "done"))
+
+    def websocket_end(self, flow: http.HTTPFlow) -> None:
+        if not self._is_ws(flow):
+            return
+        ws = flow.websocket
+        reason = (ws.close_reason if ws is not None else None) or (str(flow.error) if flow.error else None)
+        self._ws_close_turn(flow, reason or "websocket closed")
 
 
 addons = [MitLlmProxy()]

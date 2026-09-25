@@ -32,6 +32,15 @@ describe("openai", () => {
       agentId: "t2",
       agentName: "review",
     });
+    // Codex's title thread: marked by thread_source only, nested only when it names its parent.
+    const title = { client_metadata: { "x-codex-turn-metadata": JSON.stringify({ thread_source: "thread_title" }) } };
+    expect(identify(CODEX, { "session-id": "t", "thread-id": "t" }, title)).toEqual({ sessionId: "t", agentId: "side:t", agentName: "title", sideCall: true });
+    expect(identify(CODEX, { "session-id": "t", "thread-id": "t", "x-codex-parent-thread-id": "root" }, title)).toEqual({
+      sessionId: "root",
+      agentId: "side:t",
+      agentName: "title",
+      sideCall: true,
+    });
     expect(identify(OPENAI, { session_id: "old" }, {}).sessionId).toBe("old");
   });
 

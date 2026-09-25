@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Store } from "../server/store";
-import { ANTHROPIC_URL, anthropicTurns, event, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "./fixtures";
+import { ANTHROPIC_URL, anthropicTurns, codexTitleThread, codexWebSocketTurns, event, geminiTurns, openaiChatTurns, openaiResponsesTurns } from "./fixtures";
 
 let store: Store;
 beforeEach(() => {
@@ -189,6 +189,43 @@ describe("session grouping", () => {
     expect(store.listSessions()).toHaveLength(1);
     const latest = store.getRequest(ids[1]!.requestId)!;
     expect(latest.normalized.messages.map((m: any) => m.role)).toEqual(["user", "assistant", "tool"]);
+  });
+
+  test("Codex over WebSocket: the prewarm joins its turn, tools come from additional_tools", () => {
+    const ids = ingestAll(codexWebSocketTurns());
+    const sessions = store.listSessions();
+    expect(sessions).toHaveLength(1);
+    const s = sessions[0]!;
+    expect(s.request_count).toBe(2);
+    expect(s.latest_request_id).toBe(ids[1]!.requestId);
+    expect(s.title).toBe("hi");
+    expect(s.input_tokens).toBe(1000 + 400);
+    const n = store.getRequest(ids[1]!.requestId)!.normalized;
+    expect(n.tools.map((t: any) => t.name)).toEqual(["exec", "clock.sleep"]);
+    expect(n.system).toEqual([{ type: "text", text: "You are Codex, an agent based on GPT-6." }]);
+    expect(n.messages.map((m: any) => m.role)).toEqual(["user", "user"]);
+    expect(n.response.blocks).toEqual([{ type: "text", text: "Hi! What can I help you with?" }]);
+  });
+
+  test("Codex's title thread is a standalone side call, prewarm included", () => {
+    const ids = ingestAll([...codexWebSocketTurns(), ...codexTitleThread()]);
+    expect(store.listSessions()).toHaveLength(2);
+    const side = store.getSession(ids[3]!.sessionId)!;
+    expect(ids[2]!.sessionId).toBe(side.id);
+    expect(side.parent_id).toBeNull();
+    expect(side.agent_id).toBe("side:01a0d75b-4acb-79b2-9543-154a31fbce75");
+    expect(side.agent_name).toBe("title");
+    expect(side.request_count).toBe(2);
+    expect(side.title).toStartWith("Generate a concise");
+  });
+
+  test("a Codex title thread that names its parent thread joins it", () => {
+    const [prewarm, turn] = codexWebSocketTurns("root-1");
+    const title = codexTitleThread().map((e) => ({ ...e, request_headers: { ...e.request_headers, "x-codex-parent-thread-id": "root-1" } }));
+    const ids = ingestAll([prewarm, turn, ...title]);
+    const side = store.getSession(ids[3]!.sessionId)!;
+    expect(side.parent_id).toBe(ids[1]!.sessionId);
+    expect(side.agent_name).toBe("title");
   });
 });
 

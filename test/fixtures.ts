@@ -152,6 +152,65 @@ export function openaiResponsesTurns() {
   };
 }
 
+// ---------------- Codex over WebSocket (as the addon re-encodes it) ----------------
+
+export const CODEX_WS_URL = "https://chatgpt.com/backend-api/codex/responses";
+
+/** A prewarm (`generate: false`) and one real turn, with tools sent as an `additional_tools` input item. */
+export function codexWebSocketTurns(sessionId = "01a0d74e-cada-72d1-97d7-45d11814610d") {
+  const headers = { "session-id": sessionId, "thread-id": sessionId, "user-agent": "codex-tui/0.157.0 (Mac OS 26.6.0; arm64)" };
+  const tools = (id: string) => ({
+    type: "additional_tools",
+    id,
+    role: "developer",
+    tools: [
+      { type: "namespace", name: "functions", description: "", tools: [{ type: "custom", name: "exec", description: "Run JavaScript", format: { type: "grammar" } }] },
+      { type: "namespace", name: "clock", description: "", tools: [{ type: "function", name: "sleep", parameters: { type: "object" } }] },
+    ],
+  });
+  const dev = { type: "message", role: "developer", content: [{ type: "input_text", text: "You are Codex, an agent based on GPT-6." }] };
+  const env = { type: "message", role: "user", content: [{ type: "input_text", text: "<environment_context>\n  <cwd>/repo</cwd>\n</environment_context>" }] };
+  const hi = { type: "message", role: "user", content: [{ type: "input_text", text: "hi" }] };
+  const base = { model: "gpt-6-luna", tool_choice: "auto", store: false, stream: true, prompt_cache_key: sessionId };
+  const extras = (id: string): [string, unknown][] => [
+    ["codex.rate_limits", { type: "codex.rate_limits" }],
+    ["responsesapi.websocket_timing", { type: "responsesapi.websocket_timing", timing_metrics: { response_id: id } }],
+  ];
+  const msg = { type: "message", role: "assistant", content: [{ type: "output_text", text: "Hi! What can I help you with?" }] };
+  const prewarm = sse([
+    ...extras("resp_w0"),
+    ["response.completed", { type: "response.completed", response: { id: "resp_w0", model: "gpt-6-luna", status: "completed", output: [], usage: { input_tokens: 1000, output_tokens: 0 } } }],
+  ]);
+  const turn = sse([
+    ...extras("resp_w1"),
+    ["response.created", { type: "response.created", response: { id: "resp_w1", model: "gpt-6-luna", output: [] } }],
+    ["response.output_text.delta", { type: "response.output_text.delta", output_index: 0, delta: "Hi! What can I help you with?" }],
+    ["response.output_item.done", { type: "response.output_item.done", output_index: 0, item: msg }],
+    // Codex's server leaves the output out of the completed event.
+    ["response.completed", { type: "response.completed", response: { id: "resp_w1", model: "gpt-6-luna", status: "completed", output: [], usage: { input_tokens: 1200, output_tokens: 13, input_tokens_details: { cached_tokens: 800 } } } }],
+  ]);
+  return [
+    event(CODEX_WS_URL, { ...base, generate: false, input: [tools("at_1"), dev] }, prewarm, { request_headers: headers }),
+    event(CODEX_WS_URL, { ...base, input: [tools("at_2"), dev, env, hi] }, turn, { request_headers: headers }),
+  ];
+}
+
+/** Codex's title thread: its own session id, marked only by `thread_source` in the turn metadata. */
+export function codexTitleThread(threadId = "01a0d75b-4acb-79b2-9543-154a31fbce75") {
+  const headers = { "session-id": threadId, "thread-id": threadId, "user-agent": "codex-tui/0.157.0 (Mac OS 26.6.0; arm64)" };
+  const client_metadata = { "x-codex-turn-metadata": JSON.stringify({ session_id: threadId, thread_id: threadId, thread_source: "thread_title" }) };
+  const dev = { type: "message", role: "developer", content: [{ type: "input_text", text: "You are Codex, an agent based on GPT-5." }] };
+  const ask = { type: "message", role: "user", content: [{ type: "input_text", text: "Generate a concise, single-line task title.\n\nUser prompt:\nhi" }] };
+  const base = { model: "gpt-5.6-luna", stream: true, prompt_cache_key: threadId, client_metadata };
+  const done = (id: string, output: unknown[]) =>
+    sse([["response.completed", { type: "response.completed", response: { id, model: "gpt-5.6-luna", status: "completed", output, usage: { input_tokens: 50, output_tokens: 4 } } }]]);
+  const title = { type: "message", role: "assistant", content: [{ type: "output_text", text: "Greet the user" }] };
+  return [
+    event(CODEX_WS_URL, { ...base, generate: false, input: [dev] }, done("resp_t0", []), { request_headers: headers }),
+    event(CODEX_WS_URL, { ...base, input: [dev, ask] }, done("resp_t1", [title]), { request_headers: headers }),
+  ];
+}
+
 // ---------------- Gemini ----------------
 
 export const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro:streamGenerateContent?alt=sse";
