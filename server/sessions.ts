@@ -92,8 +92,10 @@ export function titleFor(n: Normalized): string {
   if (real) {
     const squash = (t: string) => t.replace(/\s+/g, " ").trim();
     // Antigravity wraps the prompt itself in a tag (<USER_REQUEST>), followed by tagged metadata.
-    const inner = /<([a-z0-9_-]+)[^>]*>([\s\S]*?)<\/\1>/i.exec(real)?.[2] ?? "";
-    const clean = squash(real.replace(/<([a-z0-9_-]+)[^>]*>[\s\S]*?<\/\1>/gi, " ")) || squash(inner) || real.trim();
+    const clean =
+      squash(real.replace(/<([a-z0-9_-]+)[^>]*>[\s\S]*?<\/\1>/gi, " ")) ||
+      squash(/<([a-z0-9_-]+)[^>]*>([\s\S]*?)<\/\1>/i.exec(real)?.[2] ?? "") ||
+      real.trim();
     return clean.slice(0, 120);
   }
   return n.model ? `(${n.model})` : "(untitled)";

@@ -1,4 +1,5 @@
 import { identify } from "../providers";
+import { hostIs } from "../providers/helpers";
 import type { IngestEvent, Normalized, NormalizedResponse, Provider } from "../types";
 import * as anthropic from "./anthropic";
 import * as gemini from "./gemini";
@@ -83,10 +84,19 @@ export function normalizeRequest(ev: IngestEvent): Normalized {
   return n;
 }
 
+const zedHost = hostIs("zed.dev");
+function fromZed(url: string): boolean {
+  try {
+    return zedHost(new URL(url));
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeResponse(provider: Provider, ev: IngestEvent): NormalizedResponse | undefined {
   let text = bodyText(ev.response_body);
   if (text == null) return ev.error ? { blocks: [], error: ev.error } : undefined;
-  text = zedStreamToSSE(text) ?? text;
+  if (fromZed(ev.url)) text = zedStreamToSSE(text) ?? text;
   const ct = ev.response_headers?.["content-type"];
   let out: NormalizedResponse;
   if (provider === "unknown") {

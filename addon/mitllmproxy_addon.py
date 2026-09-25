@@ -268,7 +268,8 @@ class MitLlmProxy:
                     log.warning("mitllmproxy: cannot write to %s (%s); dropping events until it works", spool, e)
                     self.failing = True
             finally:
-                del event, data
+                # Release the references; `data` may be unset if encoding failed.
+                event = data = None
                 with self.lock:
                     self.queued_bytes -= size
 
@@ -340,7 +341,7 @@ class MitLlmProxy:
                 "response_started_at": turn["response_started_at"],
                 "ended_at": turn["ended_at"] or time.time(),
                 "response_headers": resp_headers,
-                "response_body": _SSE(turn["events"], turn["size"]),
+                "response_body": _SSE(turn["events"], turn["size"]) if turn["events"] is not None else None,
             }
         )
         return event
@@ -445,8 +446,13 @@ class MitLlmProxy:
         turn = flow.metadata.get("mitllmproxy_turn")
         if turn is None:
             return
-        turn["events"].append((kind if isinstance(kind, str) else None, text))
-        turn["size"] += len(text)
+        if turn["events"] is not None:
+            turn["size"] += len(text)
+            if turn["size"] > MAX_BODY_COPY:
+                log.warning("mitllmproxy: websocket response over %d bytes, not capturing it", MAX_BODY_COPY)
+                turn["events"] = None
+            else:
+                turn["events"].append((kind if isinstance(kind, str) else None, text))
         if turn["response_started_at"] is None:
             turn["response_started_at"] = msg.timestamp
         if kind in WS_FINAL:
