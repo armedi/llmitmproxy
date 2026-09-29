@@ -7,7 +7,7 @@ import { Store } from "./db/store.server";
 import type { IngestEvent } from "./llm/types";
 
 /** Same default as the addon, which writes captures next to it. */
-const DEFAULT_DB = resolve(homedir(), ".mitllmproxy", "mitllmproxy.db");
+const DEFAULT_DB = resolve(homedir(), ".llmitmproxy", "llmitmproxy.db");
 /** Captures older than this, by request start time, are deleted. */
 const DEFAULT_RETENTION_S = 7 * 86400;
 const SPOOL_BATCH = 200;
@@ -76,7 +76,7 @@ interface Slot {
   backend: Backend;
   opts: BackendOptions;
 }
-const SLOT = Symbol.for("mitllmproxy.backend");
+const SLOT = Symbol.for("llmitmproxy.backend");
 const global = globalThis as { [SLOT]?: Slot };
 let current: Backend | undefined;
 
@@ -99,9 +99,9 @@ export function getBackend(): Backend {
 function optionsFromEnv(): BackendOptions {
   const env = process.env;
   return {
-    db: env.MITLLMPROXY_DB ? resolve(env.MITLLMPROXY_DB) : undefined,
-    host: env.MITLLMPROXY_HOST,
-    retention: env.MITLLMPROXY_RETENTION ? parseDuration(env.MITLLMPROXY_RETENTION) : undefined,
+    db: env.LLMITMPROXY_DB ? resolve(env.LLMITMPROXY_DB) : undefined,
+    host: env.LLMITMPROXY_HOST,
+    retention: env.LLMITMPROXY_RETENTION ? parseDuration(env.LLMITMPROXY_RETENTION) : undefined,
   };
 }
 

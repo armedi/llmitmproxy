@@ -24,7 +24,7 @@ function Raw({ detail }: { detail: RequestDetail }) {
       <RawSection title="Request body" text={detail.request_body} open />
       <RawSection title="Response headers" text={JSON.stringify(detail.response_headers)} />
       <RawSection title="Response body" text={detail.response_body} open />
-      <RawSection title="Normalized (mitllmproxy's parsed model)" text={JSON.stringify(detail.normalized)} />
+      <RawSection title="Normalized (llmitmproxy's parsed model)" text={JSON.stringify(detail.normalized)} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ type Listener = (data: string) => void;
  * websocket server lives in Vite's own module graph while the API runs in its SSR module runner,
  * and both have to see the same set.
  */
-const listeners: Set<Listener> = ((globalThis as { [k: symbol]: Set<Listener> })[Symbol.for("mitllmproxy.listeners")] ??= new Set());
+const listeners: Set<Listener> = ((globalThis as { [k: symbol]: Set<Listener> })[Symbol.for("llmitmproxy.listeners")] ??= new Set());
 
 export function publish(message: unknown) {
   const data = JSON.stringify(message);

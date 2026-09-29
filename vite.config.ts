@@ -6,16 +6,16 @@ import { attachUpdates } from "./src/http/ws.server.ts";
 
 /**
  * Development only: serve live updates on `/ws` next to Vite's HMR socket, and start the backend
- * (spool import, pruning) right away instead of on the first request. `mitllmproxy --dev` passes its
- * --db, --host and --retention flags in MITLLMPROXY_* variables; the production server gets them directly.
+ * (spool import, pruning) right away instead of on the first request. `llmitmproxy --dev` passes its
+ * --db, --host and --retention flags in LLMITMPROXY_* variables; the production server gets them directly.
  */
 function devBackend(): Plugin {
   return {
-    name: "mitllmproxy:dev-backend",
+    name: "llmitmproxy:dev-backend",
     apply: "serve",
     configureServer(server) {
       const host = typeof server.config.server.host === "string" ? server.config.server.host : "127.0.0.1";
-      process.env.MITLLMPROXY_HOST ??= host;
+      process.env.LLMITMPROXY_HOST ??= host;
       if (!server.httpServer) return;
       attachUpdates(server.httpServer as import("node:http").Server, host, false);
       server.httpServer.once("listening", async () => {

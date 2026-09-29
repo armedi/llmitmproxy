@@ -10,5 +10,5 @@ const fetch = (req: Request) =>
 
 export default createServerEntry({ fetch });
 
-/** Starts the production server; `bin/mitllmproxy` calls it on the built bundle. */
+/** Starts the production server; `bin/llmitmproxy` calls it on the built bundle. */
 export const startServer = (opts: ServerOptions) => serveNode(opts, fetch);

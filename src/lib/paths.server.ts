@@ -10,7 +10,7 @@ export const ROOT = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
   while (!existsSync(join(dir, "config", "pricing.json"))) {
     const up = dirname(dir);
-    if (up === dir) throw new Error(`mitllmproxy: cannot find config/ above ${fileURLToPath(import.meta.url)}`);
+    if (up === dir) throw new Error(`llmitmproxy: cannot find config/ above ${fileURLToPath(import.meta.url)}`);
     dir = up;
   }
   return dir;

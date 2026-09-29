@@ -8,8 +8,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SERVER = resolve(ROOT, "dist/server/server.js");
 
 function printHelp() {
-  console.log(`Usage: mitllmproxy [start] [options]
-       mitllmproxy addon-path
+  console.log(`Usage: llmitmproxy [start] [options]
+       llmitmproxy addon-path
 
 Commands:
   start          Start the UI server; imports what the addon captured (default)
@@ -18,8 +18,8 @@ Commands:
 Options for start:
   -p, --port <number>   Server port (default $PORT, else 3000)
       --host <address>  Bind address (default 127.0.0.1)
-      --db <path>       Path to the SQLite database file (default ~/.mitllmproxy/mitllmproxy.db).
-                        Start mitmproxy with MITLLMPROXY_DB set to the same path.
+      --db <path>       Path to the SQLite database file (default ~/.llmitmproxy/llmitmproxy.db).
+                        Start mitmproxy with LLMITMPROXY_DB set to the same path.
       --retention <age> Delete captures older than this, by request time: e.g. 12h, 7d, 2w,
                         or 0/off to keep them forever (default 7d)
       --dev             Run from source with hot reload (needs a checkout with dev dependencies)
@@ -30,14 +30,14 @@ Options for start:
 // node:sqlite, which stores the captures, needs no flag from these versions on.
 const [major, minor] = process.versions.node.split(".").map(Number);
 if (major < 22 || (major === 22 && minor < 13)) {
-  console.error(`mitllmproxy needs Node.js 22.13 or newer (this is ${process.version})`);
+  console.error(`llmitmproxy needs Node.js 22.13 or newer (this is ${process.version})`);
   process.exit(1);
 }
 
 const [command, ...rest] = process.argv.slice(2);
 
 if (command === "addon-path") {
-  console.log(resolve(ROOT, "addon/mitllmproxy_addon.py"));
+  console.log(resolve(ROOT, "addon/mitmproxy_addon.py"));
 } else if (command === "-h" || command === "--help") {
   printHelp();
 } else {
@@ -99,9 +99,9 @@ async function startDev(opts, retentionText) {
   const { parseDuration } = await server.environments.ssr.runner.import("/src/backend.server.ts");
   checkRetention(parseDuration, retentionText);
   // The backend runs inside Vite's SSR module runner and reads its options from the environment.
-  if (opts.db) process.env.MITLLMPROXY_DB = opts.db;
-  if (opts.host) process.env.MITLLMPROXY_HOST = opts.host;
-  if (retentionText) process.env.MITLLMPROXY_RETENTION = retentionText;
+  if (opts.db) process.env.LLMITMPROXY_DB = opts.db;
+  if (opts.host) process.env.LLMITMPROXY_HOST = opts.host;
+  if (retentionText) process.env.LLMITMPROXY_RETENTION = retentionText;
   await server.listen();
   server.printUrls();
 }

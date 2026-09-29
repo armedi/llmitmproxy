@@ -191,7 +191,7 @@ export function SessionList({ sessions, groups, children, filters, onFilters, se
         ))}
         {!total && (
           <li className="empty">
-            {sessions.length ? "No sessions match the filters." : "Waiting for traffic… Route a client through mitmproxy with the mitllmproxy addon."}
+            {sessions.length ? "No sessions match the filters." : "Waiting for traffic… Route a client through mitmproxy with the llmitmproxy addon."}
           </li>
         )}
       </ul>

@@ -8,6 +8,6 @@
     "enrichment": "none",
     "nav": "sidebar rail",
     "footer": "rail foot",
-    "brief": "mitllmproxy · live viewer for debugging LLM calls; ledger transcript, light/dark following the system"
+    "brief": "llmitmproxy · live viewer for debugging LLM calls; ledger transcript, light/dark following the system"
   }
 ]

@@ -1,13 +1,13 @@
-# mitllmproxy
+# llmitmproxy
 
 A live viewer for the LLM calls your agents make, captured through mitmproxy.
 
-Agents resend the whole conversation on every turn, so mitllmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Any single request can still be inspected in the **Raw** tab, which has a request picker.
+Agents resend the whole conversation on every turn, so llmitmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Any single request can still be inspected in the **Raw** tab, which has a request picker.
 
 Supported APIs: Anthropic Messages, OpenAI Chat Completions, OpenAI Responses, and Gemini `generateContent` (including Gemini CLI's `cloudcode-pa` wrapper). Claude on Vertex AI (`:rawPredict` / `:streamRawPredict`) is also supported. Both streaming (SSE) and non-streaming responses are supported. OpenAI Responses over WebSocket, which Codex uses for `wss://chatgpt.com/backend-api/codex/responses`, is captured too: each `response.create` frame and the events answering it become one request.
 
 ```
-client ──HTTPS_PROXY──▶ mitmproxy + addon/mitllmproxy_addon.py ──JSON files──▶ ~/.mitllmproxy/mitllmproxy.db-spool/ ──import──▶ Node server (:3000) ──ws──▶ UI
+client ──HTTPS_PROXY──▶ mitmproxy + addon/mitmproxy_addon.py ──JSON files──▶ ~/.llmitmproxy/llmitmproxy.db-spool/ ──import──▶ Node server (:3000) ──ws──▶ UI
 ```
 
 The addon doesn't talk to the server. It queues each captured request as a JSON file in the spool directory next to the database (`<db>-spool/`). The server imports and deletes those files when it starts and every 300 ms while it runs. So capturing works whether or not the server is up: keep mitmproxy running and start the server only when you want the UI, and everything captured in the meantime shows up. The spool is plain files rather than SQLite because mitmproxy's binary builds don't ship Python's `sqlite3` module. Files that fail to import are renamed to `*.failed` and left in place for inspection.
@@ -25,19 +25,19 @@ The addon uses only the standard library, so nothing needs to be installed into 
 Needs Node.js 22.13 or newer. Bun isn't needed: captures are stored with Node's built-in SQLite.
 
 ```sh
-npm i -g mitllmproxy
-mitllmproxy                 # UI server on http://127.0.0.1:3000
+npm i -g llmitmproxy
+llmitmproxy                 # UI server on http://127.0.0.1:3000
 ```
 
-Or without installing globally: `npx mitllmproxy`.
+Or without installing globally: `npx llmitmproxy`.
 
-The server's port, bind address and database are set with flags. Run `mitllmproxy --help` for the full list:
+The server's port, bind address and database are set with flags. Run `llmitmproxy --help` for the full list:
 
 ```sh
-mitllmproxy --port 5000 --db ./my.db
+llmitmproxy --port 5000 --db ./my.db
 ```
 
-mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmproxy's own docs:
+llmitmproxy doesn't run mitmproxy for you. To install and run it, follow mitmproxy's own docs:
 
 - [Installation](https://docs.mitmproxy.org/stable/overview/installation/)
 - [Getting started](https://docs.mitmproxy.org/stable/overview/getting-started/)
@@ -45,21 +45,21 @@ mitllmproxy doesn't run mitmproxy for you. To install and run it, follow mitmpro
 
 ### Load the addon
 
-`mitllmproxy addon-path` prints the absolute path to the bundled `mitllmproxy_addon.py`, wherever npm installed it. Load it into mitmproxy with its `scripts` option:
+`llmitmproxy addon-path` prints the absolute path to the bundled `mitmproxy_addon.py`, wherever npm installed it. Load it into mitmproxy with its `scripts` option:
 
 - **Every start (recommended):** add it to `~/.mitmproxy/config.yaml`. See [mitmproxy's options docs](https://docs.mitmproxy.org/stable/concepts/options/).
 
   ```yaml
   scripts:
-    - /path/to/mitllmproxy_addon.py   # output of `mitllmproxy addon-path`
+    - /path/to/mitmproxy_addon.py   # output of `llmitmproxy addon-path`
   ```
 
-- **One run:** `mitmdump -s "$(mitllmproxy addon-path)"` (also works with `mitmweb`/`mitmproxy`).
+- **One run:** `mitmdump -s "$(llmitmproxy addon-path)"` (also works with `mitmweb`/`mitmproxy`).
 - **While it's running:** in mitmweb, go to Options → Edit Options → `scripts`. In the mitmproxy console, run `:set scripts=/path/...`. This replaces any scripts already set, so list those in the same command.
 
 Captures are kept for 7 days, counted from when each request was made, not when it was imported. Older requests are deleted when the server starts and every 10 minutes after that. Spooled captures that are already too old are deleted without being imported. To change the retention, use `--retention 12h`, `--retention 2w` and so on, or `--retention off` to keep everything.
 
-Only flows that arrive after the addon loads are captured. Captured data lives in `~/.mitllmproxy/`: the database `mitllmproxy.db` and the addon's spool `mitllmproxy.db-spool/`. If you start the server with `--db`, start mitmproxy with `MITLLMPROXY_DB` set to the same absolute path, since the spool directory is derived from the database path. The addon reads `MITLLMPROXY_DB` from the environment of the mitmproxy process, not from your shell, because mitmproxy loads the addon in its own Python process rather than through the `mitllmproxy` CLI.
+Only flows that arrive after the addon loads are captured. Captured data lives in `~/.llmitmproxy/`: the database `llmitmproxy.db` and the addon's spool `llmitmproxy.db-spool/`. If you start the server with `--db`, start mitmproxy with `LLMITMPROXY_DB` set to the same absolute path, since the spool directory is derived from the database path. The addon reads `LLMITMPROXY_DB` from the environment of the mitmproxy process, not from your shell, because mitmproxy loads the addon in its own Python process rather than through the `llmitmproxy` CLI.
 
 ### Point clients at the proxy
 
@@ -143,10 +143,10 @@ Costs are estimates from list prices. They are computed from each response's tok
 - **Prices:** the snapshot in `config/pricing.json`, generated from [LiteLLM's price catalog](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json) with `npm run update-pricing`.
 - **Long prompts:** for models whose price rises above a prompt size (e.g. 200k tokens), the higher rate is used.
 - **Unknown models:** they are counted as "unpriced" instead of guessed.
-- **Your own prices:** put a `pricing.json` next to the database (`~/.mitllmproxy/pricing.json`) in the same format, for example `{"models": {"my-model": {"input": 1, "output": 4, "cacheRead": 0.1}}}`. Prices are dollars per million tokens.
+- **Your own prices:** put a `pricing.json` next to the database (`~/.llmitmproxy/pricing.json`) in the same format, for example `{"models": {"my-model": {"input": 1, "output": 4, "cacheRead": 0.1}}}`. Prices are dollars per million tokens.
 - **Updating:** stored costs are recomputed whenever the prices change.
 
-Token counts are normalized so `input` never includes cached tokens. OpenAI and Gemini report cached tokens inside the prompt count; mitllmproxy subtracts them. Gemini's thinking tokens are counted as output, as they are billed.
+Token counts are normalized so `input` never includes cached tokens. OpenAI and Gemini report cached tokens inside the prompt count; llmitmproxy subtracts them. Gemini's thinking tokens are counted as output, as they are billed.
 
 ## Export
 
@@ -159,7 +159,7 @@ JSON bodies are included as parsed objects. Streamed (SSE) responses stay as the
 
 ## Which URLs are captured
 
-The capture patterns ship with mitllmproxy in `config/capture-urls.json` and aren't user-configurable. The addon reads them once when it loads.
+The capture patterns ship with llmitmproxy in `config/capture-urls.json` and aren't user-configurable. The addon reads them once when it loads.
 
 - `urls`: only POST requests matching one of these are captured.
   - A plain pattern is a glob matched against `host/path`, without the scheme or query. `*` matches anything, including `/`.
@@ -222,7 +222,7 @@ In a group, the longest non-subagent conversation is the main session and the on
 
 ## Development
 
-mitllmproxy is a [TanStack Start](https://tanstack.com/start) app built with Vite and run with Node.js.
+llmitmproxy is a [TanStack Start](https://tanstack.com/start) app built with Vite and run with Node.js.
 
 ```sh
 npm install
@@ -235,7 +235,7 @@ npm start                # run the build, like the published package
 npm run update-pricing   # refresh config/pricing.json from LiteLLM
 ```
 
-`npm run dev` is `mitllmproxy --dev`: Vite serving the source, with the backend in its SSR module runner. `npm start` runs `bin/mitllmproxy` on the build in `dist/`, and serves whatever `npm run build` last produced, so rebuild after changes. Both take the same flags and defaults: port `$PORT` or 3000 (TanStack Start's usual one), and the database in `~/.mitllmproxy/`, so they see the same captures. Pass flags after `--`:
+`npm run dev` is `llmitmproxy --dev`: Vite serving the source, with the backend in its SSR module runner. `npm start` runs `bin/llmitmproxy` on the build in `dist/`, and serves whatever `npm run build` last produced, so rebuild after changes. Both take the same flags and defaults: port `$PORT` or 3000 (TanStack Start's usual one), and the database in `~/.llmitmproxy/`, so they see the same captures. Pass flags after `--`:
 
 ```sh
 npm run dev -- --port 4000 --db ./test.db
@@ -254,7 +254,7 @@ Apart from the addon and `config/`, everything is under `src/`. Server-only modu
   - `index.tsx` opens the newest session. `session.$id.tsx` is a session's header and stats panel; under it, `session.$id.index.tsx` is the conversation, and `session.$id.raw.tsx` and `session.$id.request.$rid.tsx` are the Raw view of the latest or a chosen request.
   - `api/` and `ingest.ts`: the HTTP API, as server routes.
 - `src/router.tsx`: the router, with a TanStack Query client in its context. Route loaders fill the query cache.
-- `src/server.ts`: the server entry. It checks the host and origin of every request, and starts the production server for `bin/mitllmproxy`.
+- `src/server.ts`: the server entry. It checks the host and origin of every request, and starts the production server for `bin/llmitmproxy`.
 - `src/backend.server.ts`: the store plus the timers that import the spool and prune old captures.
 - `src/http/`: the production HTTP server (`serve.server.ts`), the live-update socket (`ws.server.ts`, fed by `hub.server.ts`) and the host/origin check (`guard.server.ts`).
 - `src/llm/`: understanding the captured traffic.

@@ -102,11 +102,11 @@ export function Related({ session, parent, children }: { session: Session; paren
 async function download(url: string) {
   const r = await fetch(url);
   if (!r.ok) {
-    const hint = r.status === 404 ? " The server may be running older code; restart `mitllmproxy`." : "";
+    const hint = r.status === 404 ? " The server may be running older code; restart `llmitmproxy`." : "";
     alert(`Export failed: HTTP ${r.status}.${hint}`);
     return;
   }
-  const name = r.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "mitllmproxy-export.json";
+  const name = r.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "llmitmproxy-export.json";
   const href = URL.createObjectURL(await r.blob());
   const a = Object.assign(document.createElement("a"), { href, download: name });
   a.click();

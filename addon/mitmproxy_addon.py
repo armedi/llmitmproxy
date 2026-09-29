@@ -1,5 +1,5 @@
 """
-mitllmproxy mitmproxy addon.
+llmitmproxy mitmproxy addon.
 
 Filters flows by the URL patterns in config/capture-urls.json (fixed, shipped
 with the package) and queues matching
@@ -19,12 +19,12 @@ references; decoding and encoding happen on the writer thread. The copies and th
 queue are both capped, so a huge body or a stalled disk drops captures instead of growing
 memory.
 
-    mitmdump -s addon/mitllmproxy_addon.py
-    mitmweb  -s addon/mitllmproxy_addon.py
+    mitmdump -s addon/mitmproxy_addon.py
+    mitmweb  -s addon/mitmproxy_addon.py
 
 Environment overrides:
-    MITLLMPROXY_DB  path to the SQLite database; events go to "<db>-spool/"
-                    (default: ~/.mitllmproxy/mitllmproxy.db)
+    LLMITMPROXY_DB  path to the SQLite database; events go to "<db>-spool/"
+                    (default: ~/.llmitmproxy/llmitmproxy.db)
 """
 
 from __future__ import annotations
@@ -48,10 +48,10 @@ WS_FINAL = {"response.completed", "response.failed", "response.incomplete", "err
 # the whole frame; anything else falls back to json.loads.
 WS_TYPE = re.compile(r'\s*\{\s*"type"\s*:\s*"([\w.\-]*)"\s*[,}]')
 
-log = logging.getLogger("mitllmproxy")
+log = logging.getLogger("llmitmproxy")
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "capture-urls.json"
-DEFAULT_DB = Path.home() / ".mitllmproxy" / "mitllmproxy.db"
+DEFAULT_DB = Path.home() / ".llmitmproxy" / "llmitmproxy.db"
 # Largest body copied per request or response; bigger ones still pass through, but uncaptured.
 MAX_BODY_COPY = 64 * 1024 * 1024
 # Bytes of bodies waiting in the write queue; events past this are dropped.
@@ -82,11 +82,11 @@ class Config:
         try:
             data = json.loads(path.read_text())
         except (OSError, ValueError) as e:
-            log.warning("mitllmproxy: failed to read config at %s: %s", path, e)
+            log.warning("llmitmproxy: failed to read config at %s: %s", path, e)
             return
         self.include = [_compile(p) for p in data.get("urls", [])]
         self.exclude = [_compile(p) for p in data.get("ignore", [])]
-        log.info("mitllmproxy: loaded %d url patterns from %s", len(self.include), path)
+        log.info("llmitmproxy: loaded %d url patterns from %s", len(self.include), path)
 
     def matches(self, url: str) -> bool:
         full = url
@@ -191,7 +191,7 @@ def _copier(flow: http.HTTPFlow, side: str):
     """A stream callback: forwards every chunk unchanged, and keeps a copy of up to MAX_BODY_COPY
     bytes in the flow's metadata. Past that the copy is dropped and the body isn't captured.
     Chunks are kept by reference and joined once at the end."""
-    key = f"mitllmproxy_{side}"
+    key = f"llmitmproxy_{side}"
     chunks = flow.metadata[key] = []
     size = 0
 
@@ -200,7 +200,7 @@ def _copier(flow: http.HTTPFlow, side: str):
         if chunks is not None and chunk:
             size += len(chunk)
             if size > MAX_BODY_COPY:
-                log.warning("mitllmproxy: %s body over %d bytes, not capturing it", side, MAX_BODY_COPY)
+                log.warning("llmitmproxy: %s body over %d bytes, not capturing it", side, MAX_BODY_COPY)
                 chunks = flow.metadata[key] = None
             else:
                 chunks.append(chunk)
@@ -213,7 +213,7 @@ def _restore(flow: http.HTTPFlow, side: str) -> None:
     """Put the copied body back on the message once it has passed (a streamed message is otherwise
     empty), so mitmweb shows it and the hooks can read it. The copy is released. A body that was
     too big to copy becomes missing (None), so it is recorded as uncaptured rather than empty."""
-    key = f"mitllmproxy_{side}"
+    key = f"llmitmproxy_{side}"
     if key not in flow.metadata:
         return
     chunks = flow.metadata.pop(key)
@@ -222,7 +222,7 @@ def _restore(flow: http.HTTPFlow, side: str) -> None:
         msg.raw_content = None if chunks is None else b"".join(chunks)
 
 
-class MitLlmProxy:
+class LlmitmProxy:
     def __init__(self) -> None:
         self.config = Config(CONFIG_PATH)
         self.q: queue.Queue[tuple[dict, int]] = queue.Queue()
@@ -230,13 +230,13 @@ class MitLlmProxy:
         self.lock = threading.Lock()
         self.failing = False
         self.spool = self._spool_dir()
-        threading.Thread(target=self._worker, name="mitllmproxy-writer", daemon=True).start()
+        threading.Thread(target=self._worker, name="llmitmproxy-writer", daemon=True).start()
 
     # ---- writing -------------------------------------------------------
 
     @staticmethod
     def _spool_dir() -> Path:
-        env = os.environ.get("MITLLMPROXY_DB")
+        env = os.environ.get("LLMITMPROXY_DB")
         db = Path(env).expanduser() if env else DEFAULT_DB
         return db.with_name(db.name + "-spool")
 
@@ -262,11 +262,11 @@ class MitLlmProxy:
                     tmp.write_text(data, encoding="utf-8")
                 os.replace(tmp, spool / name)
                 if self.failing:
-                    log.info("mitllmproxy: writing to %s again", spool)
+                    log.info("llmitmproxy: writing to %s again", spool)
                     self.failing = False
             except Exception as e:  # never let the writer thread die
                 if not self.failing:
-                    log.warning("mitllmproxy: cannot write to %s (%s); dropping events until it works", spool, e)
+                    log.warning("llmitmproxy: cannot write to %s (%s); dropping events until it works", spool, e)
                     self.failing = True
             finally:
                 # Release the references; `data` may be unset if encoding failed.
@@ -278,7 +278,7 @@ class MitLlmProxy:
         size = _size(event)
         with self.lock:
             if self.queued_bytes + size > MAX_QUEUED_BYTES:
-                log.warning("mitllmproxy: write queue over %d bytes, dropping event", MAX_QUEUED_BYTES)
+                log.warning("llmitmproxy: write queue over %d bytes, dropping event", MAX_QUEUED_BYTES)
                 return
             self.queued_bytes += size
         self.q.put_nowait((event, size))
@@ -298,27 +298,27 @@ class MitLlmProxy:
         }
 
     def _want(self, flow: http.HTTPFlow) -> bool:
-        if flow.metadata.get("mitllmproxy") is not None:
-            return flow.metadata["mitllmproxy"]
+        if flow.metadata.get("llmitmproxy") is not None:
+            return flow.metadata["llmitmproxy"]
         req = flow.request
         ws = req.method == "GET" and req.headers.get("upgrade", "").lower() == "websocket"
         ok = (req.method == "POST" or ws) and self.config.matches(req.pretty_url)
-        flow.metadata["mitllmproxy"] = ok
-        flow.metadata["mitllmproxy_ws"] = ok and ws
+        flow.metadata["llmitmproxy"] = ok
+        flow.metadata["llmitmproxy_ws"] = ok and ws
         return ok
 
     @staticmethod
     def _is_ws(flow: http.HTTPFlow) -> bool:
-        return bool(flow.metadata.get("mitllmproxy_ws"))
+        return bool(flow.metadata.get("llmitmproxy_ws"))
 
     @staticmethod
     def _ws_headers(flow: http.HTTPFlow) -> tuple[str, dict, dict]:
         """The handshake's URL and headers, shared by every turn (the event dicts are only read)."""
-        cached = flow.metadata.get("mitllmproxy_ws_headers")
+        cached = flow.metadata.get("llmitmproxy_ws_headers")
         if cached is None:
             resp = _headers(flow.response.headers) if flow.response is not None else {}
             resp["content-type"] = "text/event-stream"
-            cached = flow.metadata["mitllmproxy_ws_headers"] = (flow.request.pretty_url, _headers(flow.request.headers), resp)
+            cached = flow.metadata["llmitmproxy_ws_headers"] = (flow.request.pretty_url, _headers(flow.request.headers), resp)
         return cached
 
     def _ws_event(self, flow: http.HTTPFlow, turn: dict, state: str) -> dict:
@@ -348,7 +348,7 @@ class MitLlmProxy:
         return event
 
     def _ws_close_turn(self, flow: http.HTTPFlow, error: str) -> None:
-        turn = flow.metadata.pop("mitllmproxy_turn", None)
+        turn = flow.metadata.pop("llmitmproxy_turn", None)
         if turn is None:
             return
         event = self._ws_event(flow, turn, "error")
@@ -430,8 +430,8 @@ class MitLlmProxy:
             if kind != "response.create":
                 return
             self._ws_close_turn(flow, "superseded by a new response.create")
-            seq = flow.metadata.get("mitllmproxy_seq", 0) + 1
-            flow.metadata["mitllmproxy_seq"] = seq
+            seq = flow.metadata.get("llmitmproxy_seq", 0) + 1
+            flow.metadata["llmitmproxy_seq"] = seq
             turn = {
                 "flow_id": f"{flow.id}-ws{seq}",
                 "started_at": msg.timestamp,
@@ -441,16 +441,16 @@ class MitLlmProxy:
                 "response_started_at": None,
                 "ended_at": None,
             }
-            flow.metadata["mitllmproxy_turn"] = turn
+            flow.metadata["llmitmproxy_turn"] = turn
             self._send(self._ws_event(flow, turn, "pending"))
             return
-        turn = flow.metadata.get("mitllmproxy_turn")
+        turn = flow.metadata.get("llmitmproxy_turn")
         if turn is None:
             return
         if turn["events"] is not None:
             turn["size"] += len(text)
             if turn["size"] > MAX_BODY_COPY:
-                log.warning("mitllmproxy: websocket response over %d bytes, not capturing it", MAX_BODY_COPY)
+                log.warning("llmitmproxy: websocket response over %d bytes, not capturing it", MAX_BODY_COPY)
                 turn["events"] = None
             else:
                 turn["events"].append((kind if isinstance(kind, str) else None, text))
@@ -458,7 +458,7 @@ class MitLlmProxy:
             turn["response_started_at"] = msg.timestamp
         if kind in WS_FINAL:
             turn["ended_at"] = msg.timestamp
-            del flow.metadata["mitllmproxy_turn"]
+            del flow.metadata["llmitmproxy_turn"]
             self._send(self._ws_event(flow, turn, "done"))
 
     def websocket_end(self, flow: http.HTTPFlow) -> None:
@@ -469,4 +469,4 @@ class MitLlmProxy:
         self._ws_close_turn(flow, reason or "websocket closed")
 
 
-addons = [MitLlmProxy()]
+addons = [LlmitmProxy()]

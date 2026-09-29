@@ -37,5 +37,5 @@ export function exportSession(store: Store, session: SessionRow, scope: "latest"
 
 export function downloadName(session: SessionRow, suffix: string) {
   const slug = session.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
-  return `mitllmproxy-session-${session.id}${slug ? `-${slug}` : ""}-${suffix}.json`;
+  return `llmitmproxy-session-${session.id}${slug ? `-${slug}` : ""}-${suffix}.json`;
 }

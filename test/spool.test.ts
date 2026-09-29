@@ -11,7 +11,7 @@ let dir: string;
 let seq = 0;
 beforeEach(() => {
   store = new Store(":memory:");
-  dir = mkdtempSync(join(tmpdir(), "mitllmproxy-spool-"));
+  dir = mkdtempSync(join(tmpdir(), "llmitmproxy-spool-"));
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 

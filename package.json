@@ -1,23 +1,23 @@
 {
-  "name": "mitllmproxy",
+  "name": "llmitmproxy",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "mitllmproxy": "./bin/mitllmproxy"
+    "llmitmproxy": "./bin/llmitmproxy"
   },
   "files": [
     "bin",
     "dist",
-    "addon/mitllmproxy_addon.py",
+    "addon/mitmproxy_addon.py",
     "config"
   ],
   "engines": {
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "node bin/mitllmproxy --dev",
+    "dev": "node bin/llmitmproxy --dev",
     "build": "vite build",
-    "start": "node bin/mitllmproxy",
+    "start": "node bin/llmitmproxy",
     "prepack": "npm run build",
     "replay": "tsx scripts/replay.ts",
     "update-pricing": "tsx scripts/update-pricing.ts",

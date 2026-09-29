@@ -351,7 +351,7 @@ describe("requests, cost and clients", () => {
   });
 
   test("reopening re-parses old usage, backfills clients and recomputes costs", () => {
-    const path = `${tmpdir()}/mitllmproxy-test-${Date.now()}.db`;
+    const path = `${tmpdir()}/llmitmproxy-test-${Date.now()}.db`;
     try {
       store = new Store(path, pricing);
       const ids = ingestAll(openaiChatTurns().map((e) => ({ ...e, request_headers: { ...e.request_headers, "user-agent": "codex_cli_rs/0.5" } })));
@@ -372,7 +372,7 @@ describe("requests, cost and clients", () => {
   });
 
   test("reopening after the hash function changed rehashes, so later turns still join", () => {
-    const path = `${tmpdir()}/mitllmproxy-test-rehash-${Date.now()}.db`;
+    const path = `${tmpdir()}/llmitmproxy-test-rehash-${Date.now()}.db`;
     const turns = anthropicTurns();
     try {
       store = new Store(path, pricing);

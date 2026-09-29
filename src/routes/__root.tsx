@@ -20,7 +20,7 @@ const THEME_SCRIPT = `try {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
-    meta: [{ charSet: "UTF-8" }, { name: "viewport", content: "width=device-width, initial-scale=1.0" }, { title: "mitllmproxy" }],
+    meta: [{ charSet: "UTF-8" }, { name: "viewport", content: "width=device-width, initial-scale=1.0" }, { title: "llmitmproxy" }],
     links: [
       { rel: "icon", href: "data:," },
       { rel: "stylesheet", href: styles },
@@ -114,7 +114,7 @@ function Layout() {
       {sidebarOpen && (
         <aside className="sidebar">
           <header className="sidebar-head">
-            <div className="brand">mitllmproxy</div>
+            <div className="brand">llmitmproxy</div>
             <span className={`live ${connected ? "on" : "off"}`} title={connected ? "Receiving updates from the server" : "Lost the connection to the server; retrying"}>
               {connected ? "live" : "offline"}
             </span>
