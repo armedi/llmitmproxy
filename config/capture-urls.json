@@ -2,6 +2,7 @@
   "urls": [
     "re:^https?://([^/]+\\.)?(anthropic\\.com)(:\\d+)?/(.+/)?messages(\\?|$)",
     "re:^https?://([^/]+\\.)?(openai\\.com|chatgpt\\.com)(:\\d+)?/(.+/)?(chat/completions|responses)(\\?|$)",
+    "re:^https?://([^/]+\\.)?githubcopilot\\.com(:\\d+)?/(.+/)?(chat/completions|responses|messages)(\\?|$)",
     "re:^https?://([^/]+\\.)?(openai\\.azure\\.com|cognitiveservices\\.azure\\.com|services\\.ai\\.azure\\.com)(:\\d+)?/(.+/)?(chat/completions|responses)(\\?|$)",
     "re:^https?://([^/]+[.-])?(generativelanguage|cloudcode-pa|aiplatform)\\.googleapis\\.com(:\\d+)?/.*:(stream)?[gG]enerateContent(\\?|$)",
     "re:^https?://([^/]+[.-])?aiplatform\\.googleapis\\.com(:\\d+)?/(.+/)?chat/completions(\\?|$)",
