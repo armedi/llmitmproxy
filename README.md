@@ -33,11 +33,7 @@ llmitmproxy                 # UI server on http://127.0.0.1:3000
 
 Or without installing globally: `npx llmitmproxy`.
 
-The server's port, bind address and database are set with flags. Run `llmitmproxy --help` for the full list:
-
-```sh
-llmitmproxy --port 5000 --db ./my.db
-```
+Run `llmitmproxy --help` for the full list:
 
 llmitmproxy doesn't run mitmproxy for you. To install and run it, follow mitmproxy's own docs:
 
