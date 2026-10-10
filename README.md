@@ -2,6 +2,8 @@
 
 A live viewer for the LLM calls your agents make, captured through mitmproxy.
 
+<video src="https://github.com/user-attachments/assets/bbf8a645-313a-49f6-a43e-1b86e41a99c7" controls width="100%"></video>
+
 Agents resend the whole conversation on every turn, so llmitmproxy groups those requests into one **session** and shows only the **latest** request. That request already holds the full history plus the newest response. Any single request can still be inspected in the **Raw** tab, which has a request picker.
 
 llmitmproxy is heavily inspired by [agentsview](https://agentsview.ai/). Agents' session logs leave things out, such as the system prompt, so llmitmproxy captures the actual requests at the network level instead. The UI is heavily inspired by agentsview as well.
